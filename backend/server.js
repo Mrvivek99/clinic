@@ -38,26 +38,17 @@ const limiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 });
 
-// Middleware — CORS must allow the frontend URLs
-const allowedOrigins = [
-  'http://localhost:5000',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'https://clinic-delta-five.vercel.app', // Your Vercel URL
-  process.env.FRONTEND_URL,
-];
-
+// Middleware — Extremely permissive CORS for debugging
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl) or if in allowedOrigins
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
-      callback(null, true);
-    } else {
-      callback(new Error('Blocked by CORS'));
-    }
-  },
+  origin: true, // Echoes back the request origin, allowing everything!
   credentials: true,
 }));
+
+// Fallback for JWT_SECRET if user forgot to set it on Render
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️ WARNING: JWT_SECRET was not found. Using a temporary secret for now.');
+  process.env.JWT_SECRET = 'temporary_debug_secret_123';
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

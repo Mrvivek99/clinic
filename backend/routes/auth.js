@@ -44,6 +44,11 @@ router.post(
       await user.save();
       console.log(`✅ User registered: ${email}`);
 
+      if (!process.env.JWT_SECRET) {
+        console.error('❌ CRITICAL ERROR: JWT_SECRET is not defined in environment variables!');
+        return res.status(500).json({ error: 'Server configuration error (JWT).' });
+      }
+
       const token = generateToken(user._id);
 
       res.status(201).json({
