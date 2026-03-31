@@ -65,9 +65,14 @@ app.use((req, res, next) => {
 // Rate limit only API routes
 app.use('/api/', limiter);
 
-// Health check
+// Health check with DB status
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
+  res.json({ 
+    status: 'OK', 
+    database: dbStatus,
+    timestamp: new Date().toISOString() 
+  });
 });
 
 // API Routes — these MUST come before static file serving and catch-all
