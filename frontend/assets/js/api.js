@@ -1,6 +1,6 @@
 // API Configuration
-// For production, replace 'your-backend-app.onrender.com' with your actual Render URL
-const PROD_URL = 'https://smart-clinic-api-v1.onrender.com'; // Change this after deploying to Render
+// For production, use your actual Render URL
+const PROD_URL = 'https://clinic-1-kl52.onrender.com';
 const API_BASE = window.API_BASE || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? `http://localhost:5000/api`
   : `${PROD_URL}/api`);
