@@ -43,7 +43,8 @@ const allowedOrigins = [
   'http://localhost:5000',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-  process.env.FRONTEND_URL, // This is your Vercel URL on Render
+  'https://clinic-delta-five.vercel.app', // Your Vercel URL
+  process.env.FRONTEND_URL,
 ];
 
 app.use(cors({
