@@ -26,6 +26,7 @@ router.post(
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('⚠️ Registration Validation Errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -35,6 +36,7 @@ router.post(
       // Check if user already exists
       const userExists = await User.findOne({ email });
       if (userExists) {
+        console.log(`❌ Registration failed: User already exists (${email})`);
         return res.status(400).json({ error: 'User already exists.' });
       }
 
