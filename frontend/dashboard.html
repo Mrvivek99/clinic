@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Clinic — My Dashboard</title>
+  <link rel="stylesheet" href="assets/css/global.css">
+  <style>
+    .welcome-banner {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%);
+      border-radius: var(--radius-lg); padding: 2rem 2.5rem;
+      color: #fff; position: relative; overflow: hidden;
+      margin-bottom: 2rem;
+    }
+    .welcome-banner::after {
+      content: '🏥'; position: absolute; right: 2rem; top: 50%;
+      transform: translateY(-50%); font-size: 5rem; opacity: .1;
+    }
+    .welcome-banner h2 { color: #fff; margin-bottom: .4rem; }
+    .welcome-banner p  { color: rgba(255,255,255,.65); }
+
+    .next-appt-card {
+      background: linear-gradient(135deg, var(--teal) 0%, #065f55 100%);
+      border-radius: var(--radius); padding: 1.5rem;
+      color: #fff; box-shadow: 0 8px 24px rgba(13,148,136,.3);
+    }
+    .next-appt-card .label { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; opacity: .75; margin-bottom: .5rem; }
+    .next-appt-card .token-big { font-family: 'DM Serif Display', serif; font-size: 3.5rem; line-height: 1; }
+    .next-appt-card .info { margin-top: .75rem; font-size: .9rem; opacity: .85; }
+
+    .appt-row {
+      display: flex; align-items: center; gap: 1rem; padding: .85rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .appt-row:last-child { border-bottom: none; }
+    .appt-date-box {
+      width: 52px; height: 52px; border-radius: var(--radius-sm);
+      background: var(--navy); color: #fff; flex-shrink: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 600; line-height: 1.2;
+    }
+    .appt-date-box .day { font-size: 1.3rem; font-weight: 700; }
+    .appt-info { flex: 1; }
+    .appt-info strong { font-size: .95rem; display: block; }
+    .appt-info span   { font-size: .82rem; color: var(--text-3); }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="navbar-brand" href="/dashboard.html">
+      <div class="brand-icon">🏥</div>
+      Smart Clinic
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="/dashboard.html" class="active">Dashboard</a></li>
+      <li><a href="/book.html">Book Slot</a></li>
+      <li><a href="/queue.html">Queue Status</a></li>
+      <li><a href="/appointments.html">My Appointments</a></li>
+    </ul>
+    <div class="navbar-user">
+      <div class="avatar" id="user-avatar">?</div>
+      <span id="user-name">Loading…</span>
+      <button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+      <h2 id="greeting">Good morning!</h2>
+      <p id="welcome-sub">Here's your health summary for today.</p>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid-4" style="margin-bottom:2rem" id="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon teal">📅</div>
+        <div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-label">Total Appointments</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon teal">✅</div>
+        <div>
+          <div class="stat-value" id="stat-completed">—</div>
+          <div class="stat-label">Completed</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon gold">⏳</div>
+        <div>
+          <div class="stat-value" id="stat-upcoming">—</div>
+          <div class="stat-label">Upcoming</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">❌</div>
+        <div>
+          <div class="stat-value" id="stat-missed">—</div>
+          <div class="stat-label">Missed</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Next Appointment -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Next Appointment</span>
+            <a href="/book.html" class="btn btn-sm btn-primary">+ Book New</a>
+          </div>
+          <div id="next-appt-content">
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <h3>No upcoming appointments</h3>
+              <p>Book a slot to get started</p>
+              <a href="/book.html" class="btn btn-primary" style="margin-top:1rem">Book Now</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Appointments -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Appointments</span>
+            <a href="/appointments.html" class="btn btn-ghost btn-sm">View All →</a>
+          </div>
+          <div id="recent-list">
+            <div style="text-align:center;padding:2rem;color:var(--text-3)">
+              <div class="spinner" style="margin:0 auto 1rem"></div>
+              Loading…
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-header"><span class="card-title">Quick Actions</span></div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap">
+        <a href="/book.html" class="btn btn-primary">📅 Book Appointment</a>
+        <a href="/queue.html" class="btn btn-secondary">👥 Check Queue Status</a>
+        <a href="/appointments.html" class="btn btn-secondary">📋 All Appointments</a>
+        <button class="btn btn-secondary" onclick="openProfileModal()">👤 Edit Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div class="modal-overlay" id="profile-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Profile</h3>
+        <button class="modal-close" onclick="closeProfileModal()">✕</button>
+      </div>
+      <form id="profile-form">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="p-name">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="p-phone">
+        </div>
+        <div style="display:flex;gap:.75rem">
+          <div class="form-group" style="flex:1">
+            <label>Date of Birth</label>
+            <input type="date" id="p-dob">
+          </div>
+          <div class="form-group" style="flex:1">
+            <label>Gender</label>
+            <select id="p-gender">
+              <option value="">Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Blood Group</label>
+          <select id="p-blood">
+            <option value="">Select</option>
+            <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:.75rem;margin-top:1rem">
+          <button type="button" class="btn btn-secondary btn-full" onclick="closeProfileModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-full">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="assets/js/api.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+
+    const user = Auth.getUser();
+    document.getElementById('user-name').textContent = user?.name || 'User';
+    document.getElementById('user-avatar').textContent = (user?.name || 'U')[0].toUpperCase();
+
+    // Greeting
+    const hour = new Date().getHours();
+    const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('greeting').textContent = `${greet}, ${user?.name?.split(' ')[0] || 'there'}! 👋`;
+    document.getElementById('welcome-sub').textContent = `Today is ${new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}`;
+
+    async function loadDashboard() {
+      try {
+        const data = await API.get('/appointments/my-appointments?limit=20');
+        const appts = data.appointments || [];
+
+        // Stats
+        document.getElementById('stat-total').textContent = appts.length;
+        document.getElementById('stat-completed').textContent = appts.filter(a => a.status === 'completed').length;
+        document.getElementById('stat-upcoming').textContent = appts.filter(a => a.status === 'booked').length;
+        document.getElementById('stat-missed').textContent = appts.filter(a => a.status === 'missed').length;
+
+        // Next appointment
+        const upcoming = appts.filter(a => a.status === 'booked')
+          .sort((a, b) => a.date.localeCompare(b.date) || a.slotTime.localeCompare(b.slotTime));
+
+        if (upcoming.length > 0) {
+          const next = upcoming[0];
+          const dName = next.doctorId?.userId?.name || 'Doctor';
+          document.getElementById('next-appt-content').innerHTML = `
+            <div class="next-appt-card">
+              <div class="label">Token Number</div>
+              <div class="token-big">#${next.tokenNumber}</div>
+              <div class="info">
+                <div>📅 ${formatDate(next.date)} at ${formatTime(next.slotTime)}</div>
+                <div>👨‍⚕️ Dr. ${dName}</div>
+              </div>
+            </div>
+            <div style="margin-top:1rem;display:flex;gap:.5rem">
+              <a href="/queue.html?apptId=${next._id}&doctorId=${next.doctorId?._id}&date=${next.date}" class="btn btn-secondary btn-sm">Track Queue</a>
+              <button class="btn btn-danger btn-sm" onclick="cancelAppt('${next._id}')">Cancel</button>
+            </div>
+          `;
+        }
+
+        // Recent list
+        const recent = appts.slice(0, 5);
+        if (recent.length === 0) {
+          document.getElementById('recent-list').innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <h3>No appointments yet</h3>
+            </div>`;
+        } else {
+          document.getElementById('recent-list').innerHTML = recent.map(a => {
+            const d = new Date(a.date + 'T00:00:00');
+            const month = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+            const day = d.getDate();
+            const statusClass = { booked:'badge-info', completed:'badge-success', missed:'badge-danger', cancelled:'badge-neutral', 'in-progress':'badge-warning' }[a.status] || 'badge-neutral';
+            return `
+            <div class="appt-row">
+              <div class="appt-date-box"><div class="day">${day}</div><div>${month}</div></div>
+              <div class="appt-info">
+                <strong>Dr. ${a.doctorId?.userId?.name || 'Doctor'}</strong>
+                <span>${formatTime(a.slotTime)} · Token #${a.tokenNumber}</span>
+              </div>
+              <span class="badge ${statusClass}">${a.status}</span>
+            </div>`;
+          }).join('');
+        }
+      } catch (err) {
+        showToast('Failed to load dashboard data.', 'error');
+      }
+    }
+
+    async function cancelAppt(id) {
+      if (!confirm('Cancel this appointment?')) return;
+      try {
+        await API.put(`/appointments/${id}/cancel`, {});
+        showToast('Appointment cancelled.', 'success');
+        loadDashboard();
+      } catch (err) {
+        showToast(err.error || 'Failed to cancel.', 'error');
+      }
+    }
+
+    function openProfileModal() {
+      const u = Auth.getUser();
+      document.getElementById('p-name').value = u.name || '';
+      document.getElementById('p-phone').value = u.phone || '';
+      document.getElementById('p-dob').value = u.dateOfBirth ? u.dateOfBirth.split('T')[0] : '';
+      document.getElementById('p-gender').value = u.gender || '';
+      document.getElementById('p-blood').value = u.bloodGroup || '';
+      document.getElementById('profile-modal').classList.add('open');
+    }
+    function closeProfileModal() {
+      document.getElementById('profile-modal').classList.remove('open');
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const data = await API.put('/auth/profile', {
+          name: document.getElementById('p-name').value,
+          phone: document.getElementById('p-phone').value,
+          dateOfBirth: document.getElementById('p-dob').value || undefined,
+          gender: document.getElementById('p-gender').value || undefined,
+          bloodGroup: document.getElementById('p-blood').value || undefined,
+        });
+        Auth.setUser(data.user);
+        closeProfileModal();
+        showToast('Profile updated!', 'success');
+        document.getElementById('user-name').textContent = data.user.name;
+      } catch (err) {
+        showToast('Failed to update profile.', 'error');
+      }
+    });
+
+    loadDashboard();
+  </script>
+</body>
+</html>

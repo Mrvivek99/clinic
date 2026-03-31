@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Clinic — Doctor Dashboard</title>
+  <link rel="stylesheet" href="assets/css/global.css">
+  <style>
+    .patient-card {
+      background: var(--white); border-radius: var(--radius);
+      padding: 1rem 1.25rem; box-shadow: var(--shadow);
+      border-left: 4px solid var(--border);
+      display: flex; align-items: center; gap: 1rem;
+      transition: all var(--transition);
+    }
+    .patient-card.in-progress { border-left-color: var(--gold); background: var(--gold-lt); }
+    .patient-card.booked      { border-left-color: #3b82f6; }
+    .patient-card.completed   { border-left-color: var(--teal); opacity: .7; }
+    .patient-card.missed      { border-left-color: var(--red); opacity: .6; }
+    .patient-card:hover       { transform: translateX(3px); }
+
+    .pt-token {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--navy); color: #fff; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: .9rem;
+    }
+    .pt-token.active { background: var(--teal); }
+
+    .action-bar { display: flex; gap: .5rem; margin-left: auto; flex-wrap: wrap; }
+    .action-bar .btn { padding: .35rem .75rem; font-size: .78rem; }
+
+    .serving-hero {
+      background: linear-gradient(135deg, var(--teal) 0%, #065f55 100%);
+      border-radius: var(--radius-lg); padding: 2rem; color: #fff;
+      margin-bottom: 1.5rem; display: flex; align-items: center; gap: 2rem;
+    }
+    .serving-hero .big-token {
+      font-family: 'DM Serif Display', serif; font-size: 5rem; line-height: 1;
+      flex-shrink: 0;
+    }
+    .serving-hero .controls { display: flex; flex-direction: column; gap: .5rem; }
+    .serving-hero .controls .btn { min-width: 150px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-brand" href="/doctor-dashboard.html"><div class="brand-icon">🏥</div> Smart Clinic</a>
+    <ul class="navbar-nav">
+      <li><a href="/doctor-dashboard.html" class="active">My Queue</a></li>
+      <li><a href="/admin.html">Admin Panel</a></li>
+    </ul>
+    <div class="navbar-user">
+      <div class="avatar" id="user-avatar">D</div>
+      <span id="user-name">Doctor</span>
+      <button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1 class="page-title">Doctor Dashboard</h1>
+        <p class="page-subtitle" id="doc-subtitle">Today's Queue</p>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center">
+        <input type="date" id="date-sel" onchange="loadQueue()" style="padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem">
+        <button class="btn btn-secondary btn-sm" onclick="loadQueue()">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid-4" style="margin-bottom:1.5rem">
+      <div class="stat-card"><div class="stat-icon gold">⏳</div><div><div class="stat-value" id="s-waiting">—</div><div class="stat-label">Waiting</div></div></div>
+      <div class="stat-card"><div class="stat-icon teal">✅</div><div><div class="stat-value" id="s-done">—</div><div class="stat-label">Completed</div></div></div>
+      <div class="stat-card"><div class="stat-icon red">❌</div><div><div class="stat-value" id="s-missed">—</div><div class="stat-label">Missed</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">📋</div><div><div class="stat-value" id="s-total">—</div><div class="stat-label">Total Today</div></div></div>
+    </div>
+
+    <!-- Currently Serving Hero -->
+    <div class="serving-hero" id="serving-hero">
+      <div>
+        <div style="font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;opacity:.7;margin-bottom:.25rem">Now Serving Token</div>
+        <div class="big-token" id="current-token">—</div>
+        <div style="font-size:.9rem;opacity:.8;margin-top:.5rem" id="current-patient">No active patient</div>
+      </div>
+      <div class="controls">
+        <button class="btn btn-primary" id="btn-complete" onclick="markCurrent('completed')">✅ Mark Completed</button>
+        <button class="btn btn-secondary" id="btn-absent" onclick="markCurrent('missed')" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.2)">⏭ Mark Absent</button>
+        <button class="btn btn-ghost" id="btn-next" onclick="callNext()" style="color:#fff;border:1.5px solid rgba(255,255,255,.3)">📢 Call Next Patient</button>
+      </div>
+    </div>
+
+    <!-- Queue List -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Today's Queue</span>
+        <button class="btn btn-sm btn-danger" onclick="openEmergencyModal()">🚨 Add Emergency</button>
+      </div>
+      <div id="queue-list" style="display:flex;flex-direction:column;gap:.5rem">
+        <div style="text-align:center;padding:2rem;color:var(--text-3)">
+          <div class="spinner" style="margin:0 auto 1rem"></div>Loading queue…
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Emergency Patient Modal -->
+  <div class="modal-overlay" id="emergency-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">🚨 Add Emergency Patient</h3>
+        <button class="modal-close" onclick="closeEmergencyModal()">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Patient User ID</label>
+        <input type="text" id="em-patient-id" placeholder="Patient's system ID">
+        <span class="form-hint">Ask the patient to provide their User ID from their profile</span>
+      </div>
+      <div class="form-group">
+        <label>Symptoms / Reason</label>
+        <textarea id="em-symptoms" rows="3" placeholder="Emergency reason…"></textarea>
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:1rem">
+        <button class="btn btn-secondary btn-full" onclick="closeEmergencyModal()">Cancel</button>
+        <button class="btn btn-danger btn-full" onclick="addEmergency()">Add to Queue</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+    const user = Auth.getUser();
+    document.getElementById('user-name').textContent = user?.name || 'Doctor';
+    document.getElementById('user-avatar').textContent = (user?.name || 'D')[0].toUpperCase();
+
+    document.getElementById('date-sel').value = new Date().toISOString().split('T')[0];
+
+    let doctorId = null, currentAppt = null;
+
+    async function initDoctor() {
+      try {
+        const data = await API.get('/doctors');
+        // Find this user's doctor profile
+        const doc = (data.doctors || []).find(d => d.userId?._id === user._id || d.userId === user._id);
+        if (doc) {
+          doctorId = doc._id;
+          document.getElementById('doc-subtitle').textContent = `Dr. ${user.name} · ${doc.specialization}`;
+        } else if (user.role === 'admin') {
+          // Admin can view any doctor's queue
+          doctorId = data.doctors?.[0]?._id;
+        }
+        loadQueue();
+      } catch (e) {}
+    }
+
+    async function loadQueue() {
+      if (!doctorId) return;
+      const date = document.getElementById('date-sel').value;
+      try {
+        const data = await API.get(`/admin/appointments?doctorId=${doctorId}&date=${date}&limit=50`);
+        const appts = data.appointments || [];
+
+        const waiting  = appts.filter(a => a.status === 'booked');
+        const active   = appts.filter(a => a.status === 'in-progress');
+        const done     = appts.filter(a => a.status === 'completed');
+        const missed   = appts.filter(a => a.status === 'missed');
+
+        document.getElementById('s-waiting').textContent = waiting.length;
+        document.getElementById('s-done').textContent = done.length;
+        document.getElementById('s-missed').textContent = missed.length;
+        document.getElementById('s-total').textContent = appts.length;
+
+        // Current patient
+        if (active.length > 0) {
+          currentAppt = active[0];
+          document.getElementById('current-token').textContent = '#' + currentAppt.tokenNumber;
+          document.getElementById('current-patient').textContent = currentAppt.userId?.name || 'Patient';
+        } else {
+          currentAppt = null;
+          document.getElementById('current-token').textContent = '—';
+          document.getElementById('current-patient').textContent = 'No active patient';
+        }
+
+        // Sort: in-progress first, then booked by token, then completed/missed
+        const sorted = [
+          ...active,
+          ...waiting.sort((a,b) => a.tokenNumber - b.tokenNumber),
+          ...done.sort((a,b) => a.tokenNumber - b.tokenNumber),
+          ...missed.sort((a,b) => a.tokenNumber - b.tokenNumber),
+        ];
+
+        if (sorted.length === 0) {
+          document.getElementById('queue-list').innerHTML = `
+            <div class="empty-state"><div class="empty-state-icon">📭</div>
+            <h3>No appointments today</h3></div>`;
+          return;
+        }
+
+        const statusMap = { booked:'badge-info', 'in-progress':'badge-warning', completed:'badge-success', missed:'badge-danger', cancelled:'badge-neutral' };
+        document.getElementById('queue-list').innerHTML = sorted.map(a => `
+          <div class="patient-card ${a.status}">
+            <div class="pt-token ${a.status === 'in-progress' ? 'active' : ''}">#${a.tokenNumber}</div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:.95rem">${a.userId?.name || 'Patient'}</div>
+              <div style="font-size:.8rem;color:var(--text-3)">${formatTime(a.slotTime)} · ${a.userId?.phone || ''}</div>
+              ${a.symptoms ? `<div style="font-size:.78rem;color:var(--text-3);margin-top:.15rem">${a.symptoms.substring(0,60)}…</div>` : ''}
+              ${a.isEmergency ? '<span class="badge badge-danger" style="margin-top:.25rem">🚨 Emergency</span>' : ''}
+            </div>
+            <span class="badge ${statusMap[a.status]}">${a.status}</span>
+            <div class="action-bar">
+              ${a.status === 'booked' ? `<button class="btn btn-primary" onclick="updateStatus('${a._id}','in-progress')">▶ Start</button>` : ''}
+              ${a.status === 'in-progress' ? `
+                <button class="btn btn-primary" onclick="updateStatus('${a._id}','completed')">✅ Done</button>
+                <button class="btn btn-secondary" onclick="updateStatus('${a._id}','missed')">⏭ Absent</button>
+              ` : ''}
+              ${['booked','in-progress'].includes(a.status) ? `<button class="btn btn-ghost btn-sm" onclick="addNotes('${a._id}')">📝</button>` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        showToast('Failed to load queue.', 'error');
+      }
+    }
+
+    async function updateStatus(apptId, status, notes = '') {
+      try {
+        await API.put(`/appointments/${apptId}/update-status`, { status, notes });
+        showToast(`Marked as ${status}`, 'success');
+        loadQueue();
+      } catch (err) {
+        showToast(err.error || 'Update failed.', 'error');
+      }
+    }
+
+    async function markCurrent(status) {
+      if (!currentAppt) { showToast('No active patient.', 'warning'); return; }
+      await updateStatus(currentAppt._id, status);
+    }
+
+    async function callNext() {
+      const date = document.getElementById('date-sel').value;
+      try {
+        const data = await API.get(`/admin/appointments?doctorId=${doctorId}&date=${date}&status=booked&limit=1`);
+        const next = data.appointments?.[0];
+        if (!next) { showToast('No more patients in queue.', 'info'); return; }
+        await updateStatus(next._id, 'in-progress');
+        showToast(`Calling Token #${next.tokenNumber} — ${next.userId?.name}`, 'success');
+      } catch (err) {
+        showToast('Failed to call next patient.', 'error');
+      }
+    }
+
+    function addNotes(apptId) {
+      const notes = prompt('Add notes for this patient:');
+      if (notes) updateStatus(apptId, 'in-progress', notes);
+    }
+
+    function openEmergencyModal()  { document.getElementById('emergency-modal').classList.add('open'); }
+    function closeEmergencyModal() { document.getElementById('emergency-modal').classList.remove('open'); }
+
+    async function addEmergency() {
+      const patientId = document.getElementById('em-patient-id').value;
+      const symptoms  = document.getElementById('em-symptoms').value;
+      const date = document.getElementById('date-sel').value;
+      if (!patientId) { showToast('Patient ID is required.', 'error'); return; }
+      try {
+        await API.post('/admin/emergency-patient', { patientId, doctorId, date, symptoms });
+        showToast('Emergency patient added to queue!', 'success');
+        closeEmergencyModal();
+        loadQueue();
+      } catch (err) {
+        showToast(err.error || 'Failed to add emergency patient.', 'error');
+      }
+    }
+
+    // Connect Socket.io
+    try {
+      const socket = io(window.SOCKET_URL || window.location.origin);
+      socket.on('queue-updated', () => loadQueue());
+    } catch (e) {}
+
+    // Auto-refresh every 15s
+    setInterval(loadQueue, 15000);
+
+    initDoctor();
+  </script>
+</body>
+</html>

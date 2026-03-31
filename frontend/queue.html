@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Clinic — Queue Status</title>
+  <link rel="stylesheet" href="assets/css/global.css">
+  <style>
+    .queue-hero {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%);
+      border-radius: var(--radius-lg); padding: 2rem; color: #fff;
+      margin-bottom: 1.5rem; text-align: center; position: relative; overflow: hidden;
+    }
+    .queue-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 30% 50%, rgba(13,148,136,.2) 0%, transparent 60%);
+    }
+    .queue-hero h2 { color: #fff; font-size: 1.1rem; opacity: .7; margin-bottom: .5rem; }
+    .serving-number {
+      font-family: 'DM Serif Display', serif; font-size: 5rem; line-height: 1;
+      color: var(--teal-lt); text-shadow: 0 0 40px rgba(13,148,136,.5);
+    }
+    .queue-hero .label {
+      font-size: .78rem; text-transform: uppercase; letter-spacing: .08em;
+      opacity: .6; margin-bottom: .25rem;
+    }
+    .my-position-card {
+      border: 2px solid var(--teal); border-radius: var(--radius);
+      padding: 1.5rem; background: var(--teal-xl);
+      display: flex; align-items: center; gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .my-token {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--teal); color: #fff; flex-shrink: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(13,148,136,.35);
+    }
+    .my-token .t-label { font-size: .62rem; text-transform: uppercase; letter-spacing: .05em; opacity: .85; }
+    .my-token .t-num   { font-family: 'DM Serif Display', serif; font-size: 1.5rem; line-height: 1; }
+
+    .wait-badge {
+      background: var(--navy); color: #fff; border-radius: var(--radius-sm);
+      padding: .75rem 1.25rem; font-size: .88rem;
+    }
+    .wait-badge .mins { font-size: 1.8rem; font-weight: 700; color: var(--gold); line-height: 1; }
+
+    .queue-row {
+      display: flex; align-items: center; gap: 1rem; padding: .85rem 1rem;
+      border-radius: var(--radius-sm); transition: background var(--transition);
+    }
+    .queue-row:hover { background: var(--ivory); }
+    .queue-row.current { background: var(--teal-xl); border-left: 3px solid var(--teal); }
+    .queue-row.me { background: #eff6ff; border-left: 3px solid #3b82f6; }
+
+    .position-badge {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--ivory-2); color: var(--text-2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .82rem; font-weight: 700; flex-shrink: 0;
+    }
+    .position-badge.current { background: var(--teal); color: #fff; }
+    .position-badge.me { background: #3b82f6; color: #fff; }
+
+    .filter-bar {
+      display: flex; gap: .75rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+
+    #live-indicator {
+      display: inline-flex; align-items: center; gap: .5rem;
+      font-size: .82rem; color: var(--teal);
+      background: var(--teal-xl); padding: .3rem .8rem; border-radius: 99px;
+    }
+    #live-indicator::before {
+      content: ''; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--teal); animation: pulse 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-brand" href="/dashboard.html">
+      <div class="brand-icon">🏥</div> Smart Clinic
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="/dashboard.html">Dashboard</a></li>
+      <li><a href="/book.html">Book Slot</a></li>
+      <li><a href="/queue.html" class="active">Queue Status</a></li>
+      <li><a href="/appointments.html">My Appointments</a></li>
+    </ul>
+    <div class="navbar-user">
+      <div class="avatar" id="user-avatar">?</div>
+      <span id="user-name">Loading…</span>
+      <button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1 class="page-title">Live Queue Status</h1>
+        <p class="page-subtitle">Real-time updates every 10 seconds</p>
+      </div>
+      <div id="live-indicator">Live</div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="form-group" style="margin:0;flex:1;min-width:180px">
+        <select id="doctor-filter" onchange="onFilterChange()">
+          <option value="">Select Doctor…</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <input type="date" id="date-filter" onchange="onFilterChange()">
+      </div>
+      <button class="btn btn-primary" onclick="loadQueue()">🔄 Refresh</button>
+    </div>
+
+    <!-- My Position Card -->
+    <div id="my-position-section" style="display:none">
+      <div class="my-position-card">
+        <div class="my-token">
+          <span class="t-label">Your</span>
+          <span class="t-num" id="my-token-num">#?</span>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:1.05rem;color:var(--navy);margin-bottom:.25rem">
+            You are in the queue
+          </div>
+          <div style="font-size:.88rem;color:var(--text-2)" id="my-position-text">Position —</div>
+          <div style="font-size:.82rem;color:var(--text-3);margin-top:.2rem" id="my-slot-time"></div>
+        </div>
+        <div class="wait-badge">
+          <div class="t-label" style="font-size:.7rem;opacity:.7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem">Est. Wait</div>
+          <div class="mins" id="my-wait">—</div>
+          <div style="font-size:.75rem;opacity:.7">minutes</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- Currently Serving + Hero -->
+      <div>
+        <div class="queue-hero">
+          <div class="label">Now Serving Token</div>
+          <div class="serving-number" id="serving-token">—</div>
+          <div style="margin-top:.75rem;font-size:.88rem;opacity:.65" id="queue-stats"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Queue Overview</span>
+          </div>
+          <div class="grid-2" style="gap:.75rem">
+            <div style="text-align:center;padding:1rem;background:var(--ivory-2);border-radius:var(--radius-sm)">
+              <div style="font-size:1.8rem;font-weight:700;color:var(--navy)" id="ov-waiting">—</div>
+              <div style="font-size:.8rem;color:var(--text-3)">Waiting</div>
+            </div>
+            <div style="text-align:center;padding:1rem;background:var(--teal-xl);border-radius:var(--radius-sm)">
+              <div style="font-size:1.8rem;font-weight:700;color:var(--teal)" id="ov-completed">—</div>
+              <div style="font-size:.8rem;color:var(--text-3)">Completed</div>
+            </div>
+            <div style="text-align:center;padding:1rem;background:var(--red-lt);border-radius:var(--radius-sm)">
+              <div style="font-size:1.8rem;font-weight:700;color:var(--red)" id="ov-missed">—</div>
+              <div style="font-size:.8rem;color:var(--text-3)">Missed</div>
+            </div>
+            <div style="text-align:center;padding:1rem;background:var(--gold-lt);border-radius:var(--radius-sm)">
+              <div style="font-size:1.8rem;font-weight:700;color:#92400e" id="ov-slot-dur">—</div>
+              <div style="font-size:.8rem;color:var(--text-3)">Min/Slot</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Waiting List -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Waiting List</span>
+          <span class="badge badge-info" id="waiting-count">0 waiting</span>
+        </div>
+        <div id="waiting-list">
+          <div class="empty-state">
+            <div class="empty-state-icon">✅</div>
+            <h3>Queue is empty</h3>
+            <p>Select a doctor and date to view queue</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <!-- Socket.io CDN -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+    const user = Auth.getUser();
+    document.getElementById('user-name').textContent = user?.name || '';
+    document.getElementById('user-avatar').textContent = (user?.name || 'U')[0].toUpperCase();
+
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date-filter').value = today;
+
+    // Read query params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('doctorId')) {
+      const sel = document.getElementById('doctor-filter');
+      sel.innerHTML += `<option value="${params.get('doctorId')}" selected>Loading…</option>`;
+    }
+    if (params.get('date')) document.getElementById('date-filter').value = params.get('date');
+
+    let socket = null, pollInterval = null;
+
+    // Connect Socket.io
+    function connectSocket() {
+      try {
+        socket = io(window.SOCKET_URL || window.location.origin);
+        socket.on('connect', () => {
+          document.getElementById('live-indicator').textContent = 'Live';
+        });
+        socket.on('disconnect', () => {
+          document.getElementById('live-indicator').textContent = 'Reconnecting…';
+        });
+        socket.on('queue-updated', (data) => {
+          loadQueue();
+          showToast('Queue updated!', 'info');
+        });
+        socket.on(`reminder-${user?._id}`, (data) => {
+          showToast(data.message, 'warning');
+        });
+      } catch (e) {
+        console.warn('Socket unavailable, using polling');
+      }
+    }
+
+    async function loadDoctors() {
+      try {
+        const data = await API.get('/doctors');
+        const sel = document.getElementById('doctor-filter');
+        const preset = params.get('doctorId');
+        sel.innerHTML = `<option value="">Select Doctor…</option>` +
+          (data.doctors || []).map(d => `<option value="${d._id}" ${d._id === preset ? 'selected' : ''}>Dr. ${d.userId?.name} — ${d.specialization}</option>`).join('');
+        if (preset) loadQueue();
+      } catch (e) {}
+    }
+
+    function onFilterChange() {
+      const doctorId = document.getElementById('doctor-filter').value;
+      const date = document.getElementById('date-filter').value;
+      if (doctorId && date) loadQueue();
+    }
+
+    async function loadQueue() {
+      const doctorId = document.getElementById('doctor-filter').value;
+      const date = document.getElementById('date-filter').value;
+      if (!doctorId || !date) return;
+
+      // Join socket room
+      if (socket) socket.emit('join-queue-room', date);
+
+      try {
+        const data = await API.get(`/queue/status?doctorId=${doctorId}&date=${date}`);
+        const q = data.queueStatus;
+
+        // Hero
+        document.getElementById('serving-token').textContent =
+          q.currentlyServing ? '#' + q.currentlyServing.tokenNumber : '—';
+        document.getElementById('queue-stats').textContent =
+          `${q.totalWaiting} waiting · ${q.totalCompleted} completed · ${q.totalMissed} missed`;
+
+        // Overview
+        document.getElementById('ov-waiting').textContent = q.totalWaiting;
+        document.getElementById('ov-completed').textContent = q.totalCompleted;
+        document.getElementById('ov-missed').textContent = q.totalMissed;
+        document.getElementById('ov-slot-dur').textContent = q.slotDuration;
+        document.getElementById('waiting-count').textContent = `${q.totalWaiting} waiting`;
+
+        // My position
+        if (q.userAppointment) {
+          const ua = q.userAppointment;
+          document.getElementById('my-position-section').style.display = 'block';
+          document.getElementById('my-token-num').textContent = '#' + ua.tokenNumber;
+          document.getElementById('my-position-text').textContent =
+            ua.status === 'booked' ? `Position ${ua.position} in queue` : `Status: ${ua.status}`;
+          document.getElementById('my-slot-time').textContent = `Scheduled: ${formatTime(ua.slotTime)}`;
+          document.getElementById('my-wait').textContent = ua.estimatedWaitMinutes || 0;
+        }
+
+        // Waiting list
+        if (q.waitingList.length === 0) {
+          document.getElementById('waiting-list').innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">🎉</div>
+              <h3>No patients waiting</h3>
+            </div>`;
+        } else {
+          document.getElementById('waiting-list').innerHTML = q.waitingList.map((w, i) => {
+            const isCurrent = q.currentlyServing?.tokenNumber === w.tokenNumber;
+            const isMe = w.isCurrentUser;
+            return `
+              <div class="queue-row ${isCurrent ? 'current' : ''} ${isMe ? 'me' : ''}">
+                <div class="position-badge ${isCurrent ? 'current' : isMe ? 'me' : ''}">${i + 1}</div>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:.9rem">
+                    Token #${w.tokenNumber}
+                    ${isCurrent ? '<span class="badge badge-success" style="margin-left:.5rem">Serving</span>' : ''}
+                    ${isMe ? '<span class="badge badge-info" style="margin-left:.5rem">You</span>' : ''}
+                  </div>
+                  <div style="font-size:.8rem;color:var(--text-3)">~${w.estimatedWaitMinutes} min wait</div>
+                </div>
+              </div>`;
+          }).join('');
+        }
+      } catch (err) {
+        showToast('Failed to load queue.', 'error');
+      }
+    }
+
+    // Auto-poll every 10 seconds
+    function startPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(loadQueue, 10000);
+    }
+
+    loadDoctors();
+    connectSocket();
+    startPolling();
+  </script>
+</body>
+</html>

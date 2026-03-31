@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Clinic — Login</title>
+  <link rel="stylesheet" href="assets/css/global.css">
+  <style>
+    body {
+      background: var(--navy);
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 1.5rem;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(13,148,136,.18) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(212,168,83,.1) 0%, transparent 50%);
+    }
+    .auth-container {
+      width: 100%; max-width: 440px;
+    }
+    .auth-logo {
+      text-align: center; margin-bottom: 2rem;
+    }
+    .auth-logo .icon {
+      width: 60px; height: 60px; background: var(--teal);
+      border-radius: 16px; display: inline-flex;
+      align-items: center; justify-content: center;
+      font-size: 1.8rem; margin-bottom: 1rem;
+      box-shadow: 0 8px 24px rgba(13,148,136,.4);
+    }
+    .auth-logo h1 {
+      color: #fff; font-size: 1.6rem; margin-bottom: .25rem;
+    }
+    .auth-logo p { color: rgba(255,255,255,.55); font-size: .9rem; }
+    .auth-card {
+      background: var(--white); border-radius: var(--radius-lg);
+      padding: 2.25rem; box-shadow: 0 24px 64px rgba(0,0,0,.3);
+    }
+    .auth-tabs {
+      display: flex; margin-bottom: 2rem;
+      background: var(--ivory-2); border-radius: var(--radius-sm); padding: 4px;
+    }
+    .auth-tab {
+      flex: 1; padding: .6rem; text-align: center; border-radius: 6px;
+      cursor: pointer; font-weight: 600; font-size: .9rem;
+      color: var(--text-3); transition: all var(--transition);
+      user-select: none;
+    }
+    .auth-tab.active {
+      background: var(--white); color: var(--navy);
+      box-shadow: 0 1px 4px rgba(0,0,0,.1);
+    }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .divider {
+      text-align: center; color: var(--text-3); font-size: .82rem;
+      margin: 1.5rem 0; position: relative;
+    }
+    .divider::before {
+      content: ''; position: absolute; top: 50%; left: 0; right: 0;
+      height: 1px; background: var(--border); z-index: 0;
+    }
+    .divider span {
+      position: relative; z-index: 1; background: var(--white);
+      padding: 0 .75rem;
+    }
+    .password-wrap { position: relative; }
+    .password-toggle {
+      position: absolute; right: .75rem; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: var(--text-3); font-size: 1rem; padding: .2rem;
+    }
+    .auth-footer {
+      text-align: center; margin-top: 1.5rem;
+      color: rgba(255,255,255,.5); font-size: .84rem;
+    }
+    .role-select {
+      display: flex; gap: .5rem; margin-bottom: 1.1rem;
+    }
+    .role-opt {
+      flex: 1; padding: .65rem; text-align: center;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      cursor: pointer; font-size: .85rem; font-weight: 500;
+      transition: all var(--transition); user-select: none;
+    }
+    .role-opt.selected { border-color: var(--teal); background: var(--teal-xl); color: var(--teal); }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-logo">
+      <div class="icon">🏥</div>
+      <h1>Smart Clinic</h1>
+      <p>Appointment & Queue Management</p>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <div class="auth-tab active" onclick="switchTab('login')">Sign In</div>
+        <div class="auth-tab" onclick="switchTab('register')">Register</div>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form class="auth-form active" id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email Address</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <div class="password-wrap">
+            <input type="password" id="login-password" placeholder="••••••••" required>
+            <button type="button" class="password-toggle" onclick="togglePassword('login-password')">👁</button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="login-btn">
+          Sign In
+        </button>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form class="auth-form" id="register-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="reg-name">Full Name</label>
+            <input type="text" id="reg-name" placeholder="John Doe" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-phone">Phone Number</label>
+            <input type="tel" id="reg-phone" placeholder="+91 98765 43210" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Email Address</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <div class="password-wrap">
+            <input type="password" id="reg-password" placeholder="Minimum 6 characters" required>
+            <button type="button" class="password-toggle" onclick="togglePassword('reg-password')">👁</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="reg-dob">Date of Birth</label>
+            <input type="date" id="reg-dob">
+          </div>
+          <div class="form-group">
+            <label for="reg-gender">Gender</label>
+            <select id="reg-gender">
+              <option value="">Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="reg-blood">Blood Group</label>
+          <select id="reg-blood">
+            <option value="">Select Blood Group</option>
+            <option>A+</option><option>A-</option>
+            <option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option>
+            <option>O+</option><option>O-</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="register-btn">
+          Create Account
+        </button>
+      </form>
+    </div>
+
+    <div class="auth-footer">
+      Demo credentials: admin@clinic.com / admin123
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="assets/js/api.js"></script>
+  <script>
+    redirectIfLoggedIn('/dashboard.html');
+
+    function switchTab(tab) {
+      document.querySelectorAll('.auth-tab').forEach((t, i) => {
+        t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
+      });
+      document.getElementById('login-form').classList.toggle('active', tab === 'login');
+      document.getElementById('register-form').classList.toggle('active', tab === 'register');
+    }
+
+    function togglePassword(id) {
+      const el = document.getElementById(id);
+      el.type = el.type === 'password' ? 'text' : 'password';
+    }
+
+    // LOGIN
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+
+      try {
+        const data = await API.post('/auth/login', {
+          email: document.getElementById('login-email').value,
+          password: document.getElementById('login-password').value,
+        }, false);
+
+        Auth.setToken(data.token);
+        Auth.setUser(data.user);
+
+        showToast('Welcome back, ' + data.user.name + '!', 'success');
+
+        setTimeout(() => {
+          if (data.user.role === 'admin') {
+            window.location.href = '/admin.html';
+          } else if (data.user.role === 'doctor') {
+            window.location.href = '/doctor-dashboard.html';
+          } else {
+            window.location.href = '/dashboard.html';
+          }
+        }, 600);
+      } catch (err) {
+        showToast(err.error || 'Login failed. Please try again.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+
+    // REGISTER
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('register-btn');
+      btn.disabled = true;
+      btn.textContent = 'Creating account…';
+
+      try {
+        const data = await API.post('/auth/register', {
+          name: document.getElementById('reg-name').value,
+          email: document.getElementById('reg-email').value,
+          phone: document.getElementById('reg-phone').value,
+          password: document.getElementById('reg-password').value,
+          dateOfBirth: document.getElementById('reg-dob').value || undefined,
+          gender: document.getElementById('reg-gender').value || undefined,
+          bloodGroup: document.getElementById('reg-blood').value || undefined,
+        }, false);
+
+        Auth.setToken(data.token);
+        Auth.setUser(data.user);
+        showToast('Account created! Welcome to Smart Clinic.', 'success');
+
+        setTimeout(() => window.location.href = '/dashboard.html', 700);
+      } catch (err) {
+        const msg = err.errors ? err.errors[0].msg : (err.error || 'Registration failed.');
+        showToast(msg, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>

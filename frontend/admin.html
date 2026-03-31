@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Clinic — Admin Panel</title>
+  <link rel="stylesheet" href="assets/css/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .admin-layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 64px); }
+    .sidebar {
+      background: var(--navy-2); padding: 1.5rem 0; position: sticky;
+      top: 64px; height: calc(100vh - 64px); overflow-y: auto;
+    }
+    .sidebar-section { padding: .5rem 1.5rem; margin-bottom: .25rem; }
+    .sidebar-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: rgba(255,255,255,.35); margin-bottom: .5rem; }
+    .sidebar-link {
+      display: flex; align-items: center; gap: .65rem;
+      padding: .6rem 1rem; border-radius: var(--radius-sm);
+      color: rgba(255,255,255,.65); font-size: .88rem; font-weight: 500;
+      cursor: pointer; transition: all var(--transition); user-select: none;
+    }
+    .sidebar-link:hover  { background: rgba(255,255,255,.08); color: #fff; }
+    .sidebar-link.active { background: var(--teal); color: #fff; }
+
+    .admin-content { padding: 2rem; background: var(--ivory); }
+
+    .tab-section { display: none; }
+    .tab-section.active { display: block; }
+
+    .chart-card { background: var(--white); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); }
+
+    .doctor-manage-card {
+      background: var(--white); border-radius: var(--radius); padding: 1.25rem;
+      box-shadow: var(--shadow); display: flex; align-items: center; gap: 1rem;
+    }
+    .slot-status { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .slot-status.available { background: var(--teal); }
+    .slot-status.busy      { background: var(--gold); }
+    .slot-status.offline   { background: var(--text-3); }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-brand" href="/admin.html"><div class="brand-icon">🏥</div> Smart Clinic</a>
+    <ul class="navbar-nav">
+      <li><a href="/doctor-dashboard.html">Doctor View</a></li>
+    </ul>
+    <div class="navbar-user">
+      <div class="avatar" id="user-avatar">A</div>
+      <span id="user-name">Admin</span>
+      <button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Overview</div>
+        <div class="sidebar-link active" onclick="switchTab('dashboard')">📊 Dashboard</div>
+        <div class="sidebar-link" onclick="switchTab('analytics')">📈 Analytics</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Management</div>
+        <div class="sidebar-link" onclick="switchTab('appointments')">📅 Appointments</div>
+        <div class="sidebar-link" onclick="switchTab('doctors')">👨‍⚕️ Doctors</div>
+        <div class="sidebar-link" onclick="switchTab('slots')">⏰ Manage Slots</div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="admin-content">
+
+      <!-- DASHBOARD TAB -->
+      <div class="tab-section active" id="tab-dashboard">
+        <div class="page-header">
+          <h2 class="page-title">Admin Dashboard</h2>
+          <p class="page-subtitle" id="today-label">Loading today's stats…</p>
+        </div>
+        <div class="grid-4" style="margin-bottom:1.5rem">
+          <div class="stat-card"><div class="stat-icon gold">📅</div><div><div class="stat-value" id="d-total">—</div><div class="stat-label">Total Today</div></div></div>
+          <div class="stat-card"><div class="stat-icon teal">✅</div><div><div class="stat-value" id="d-done">—</div><div class="stat-label">Completed</div></div></div>
+          <div class="stat-card"><div class="stat-icon red">❌</div><div><div class="stat-value" id="d-missed">—</div><div class="stat-label">Missed</div></div></div>
+          <div class="stat-card"><div class="stat-icon blue">⏱</div><div><div class="stat-value" id="d-wait">—</div><div class="stat-label">Avg Wait (min)</div></div></div>
+        </div>
+        <div class="grid-2">
+          <div class="stat-card"><div class="stat-icon teal">👥</div><div><div class="stat-value" id="d-patients">—</div><div class="stat-label">Total Patients</div></div></div>
+          <div class="stat-card"><div class="stat-icon blue">👨‍⚕️</div><div><div class="stat-value" id="d-doctors">—</div><div class="stat-label">Active Doctors</div></div></div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS TAB -->
+      <div class="tab-section" id="tab-analytics">
+        <div class="page-header">
+          <h2 class="page-title">Analytics</h2>
+          <p class="page-subtitle">Patient trends over time</p>
+        </div>
+        <div class="grid-2" style="margin-bottom:1.5rem">
+          <div class="chart-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <strong>Daily Appointments</strong>
+              <select id="analytics-days" onchange="loadAnalytics()" style="padding:.35rem .75rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.82rem">
+                <option value="7">Last 7 days</option>
+                <option value="14">Last 14 days</option>
+                <option value="30">Last 30 days</option>
+              </select>
+            </div>
+            <canvas id="daily-chart" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <strong style="display:block;margin-bottom:1rem">Appointment Status Breakdown</strong>
+            <canvas id="status-chart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- APPOINTMENTS TAB -->
+      <div class="tab-section" id="tab-appointments">
+        <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+          <div>
+            <h2 class="page-title">All Appointments</h2>
+          </div>
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+            <input type="date" id="appt-date-filter" onchange="loadAdminAppts()" style="padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:var(--radius-sm)">
+            <select id="appt-status-filter" onchange="loadAdminAppts()" style="padding:.5rem .75rem;border:1.5px solid var(--border);border-radius:var(--radius-sm)">
+              <option value="">All Statuses</option>
+              <option value="booked">Booked</option>
+              <option value="in-progress">In Progress</option>
+              <option value="completed">Completed</option>
+              <option value="missed">Missed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Token</th><th>Patient</th><th>Doctor</th>
+                  <th>Date</th><th>Time</th><th>Status</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="appts-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-3)">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOCTORS TAB -->
+      <div class="tab-section" id="tab-doctors">
+        <div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <h2 class="page-title">Manage Doctors</h2>
+          </div>
+          <button class="btn btn-primary" onclick="openAddDoctorModal()">+ Add Doctor</button>
+        </div>
+        <div id="doctors-grid" style="display:flex;flex-direction:column;gap:.75rem">
+          <div style="text-align:center;padding:2rem;color:var(--text-3)"><div class="spinner" style="margin:0 auto 1rem"></div></div>
+        </div>
+      </div>
+
+      <!-- SLOTS TAB -->
+      <div class="tab-section" id="tab-slots">
+        <div class="page-header">
+          <h2 class="page-title">Generate Slots</h2>
+          <p class="page-subtitle">Create appointment slots for doctors</p>
+        </div>
+        <div class="card" style="max-width:480px">
+          <div class="form-group">
+            <label>Select Doctor</label>
+            <select id="slot-doctor"></select>
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="slot-date">
+          </div>
+          <button class="btn btn-primary btn-full" onclick="generateSlots()">⚙️ Generate Slots</button>
+          <div id="slot-result" style="margin-top:1rem"></div>
+        </div>
+      </div>
+
+    </div><!-- end admin-content -->
+  </div><!-- end admin-layout -->
+
+  <!-- Add Doctor Modal -->
+  <div class="modal-overlay" id="add-doctor-modal">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <h3 class="modal-title">Add Doctor Profile</h3>
+        <button class="modal-close" onclick="document.getElementById('add-doctor-modal').classList.remove('open')">✕</button>
+      </div>
+      <form id="add-doctor-form">
+        <div class="form-group"><label>User ID (from registered user)</label><input type="text" id="ad-userid" required placeholder="MongoDB User ID"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div class="form-group"><label>Specialization</label><input type="text" id="ad-spec" required placeholder="Cardiologist"></div>
+          <div class="form-group"><label>Qualification</label><input type="text" id="ad-qual" placeholder="MBBS, MD"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div class="form-group"><label>Experience (years)</label><input type="number" id="ad-exp" min="0" value="0"></div>
+          <div class="form-group"><label>Consultation Fee (₹)</label><input type="number" id="ad-fee" min="0" value="0"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div class="form-group"><label>Start Time</label><input type="time" id="ad-start" value="09:00"></div>
+          <div class="form-group"><label>End Time</label><input type="time" id="ad-end" value="17:00"></div>
+        </div>
+        <div class="form-group"><label>Slot Duration (minutes)</label><input type="number" id="ad-slot" value="15" min="5"></div>
+        <div style="display:flex;gap:.75rem;margin-top:1rem">
+          <button type="button" class="btn btn-secondary btn-full" onclick="document.getElementById('add-doctor-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-full">Create Doctor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="assets/js/api.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+    const user = Auth.getUser();
+    document.getElementById('user-name').textContent = user?.name || 'Admin';
+    document.getElementById('user-avatar').textContent = (user?.name || 'A')[0].toUpperCase();
+
+    document.getElementById('appt-date-filter').value = new Date().toISOString().split('T')[0];
+
+    let dailyChart = null, statusChart = null;
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab-section').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+      document.getElementById(`tab-${name}`).classList.add('active');
+      event.currentTarget.classList.add('active');
+
+      if (name === 'dashboard') loadDashboard();
+      if (name === 'analytics') loadAnalytics();
+      if (name === 'appointments') loadAdminAppts();
+      if (name === 'doctors') loadDoctors();
+      if (name === 'slots') loadDoctorsForSlots();
+    }
+
+    async function loadDashboard() {
+      try {
+        const data = await API.get('/admin/dashboard');
+        const s = data.stats;
+        document.getElementById('today-label').textContent = `Stats for ${formatDate(data.today)}`;
+        document.getElementById('d-total').textContent = s.totalToday;
+        document.getElementById('d-done').textContent = s.completed;
+        document.getElementById('d-missed').textContent = s.missed;
+        document.getElementById('d-wait').textContent = s.avgWaitMinutes;
+        document.getElementById('d-patients').textContent = s.totalPatients;
+        document.getElementById('d-doctors').textContent = s.totalDoctors;
+      } catch (err) { showToast('Failed to load dashboard.', 'error'); }
+    }
+
+    async function loadAnalytics() {
+      const days = document.getElementById('analytics-days').value;
+      try {
+        const data = await API.get(`/admin/analytics?days=${days}`);
+        const stats = data.dailyStats || [];
+
+        const labels    = stats.map(s => s._id);
+        const totals    = stats.map(s => s.total);
+        const completed = stats.map(s => s.completed);
+        const missed    = stats.map(s => s.missed);
+
+        const ctx1 = document.getElementById('daily-chart').getContext('2d');
+        if (dailyChart) dailyChart.destroy();
+        dailyChart = new Chart(ctx1, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Total', data: totals, backgroundColor: 'rgba(15,30,53,.6)', borderRadius: 4 },
+              { label: 'Completed', data: completed, backgroundColor: 'rgba(13,148,136,.7)', borderRadius: 4 },
+              { label: 'Missed', data: missed, backgroundColor: 'rgba(229,62,62,.5)', borderRadius: 4 },
+            ],
+          },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        const ctx2 = document.getElementById('status-chart').getContext('2d');
+        if (statusChart) statusChart.destroy();
+        const totalDone    = completed.reduce((a,b)=>a+b,0);
+        const totalMissed  = missed.reduce((a,b)=>a+b,0);
+        const totalPending = totals.reduce((a,b)=>a+b,0) - totalDone - totalMissed;
+        statusChart = new Chart(ctx2, {
+          type: 'doughnut',
+          data: {
+            labels: ['Completed', 'Pending', 'Missed'],
+            datasets: [{
+              data: [totalDone, totalPending, totalMissed],
+              backgroundColor: ['rgba(13,148,136,.8)', 'rgba(15,30,53,.6)', 'rgba(229,62,62,.7)'],
+              borderWidth: 2, borderColor: '#fff',
+            }],
+          },
+          options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+      } catch (err) { showToast('Failed to load analytics.', 'error'); }
+    }
+
+    async function loadAdminAppts() {
+      const date   = document.getElementById('appt-date-filter').value;
+      const status = document.getElementById('appt-status-filter').value;
+      const qs = new URLSearchParams({ limit: 30 });
+      if (date) qs.set('date', date);
+      if (status) qs.set('status', status);
+      try {
+        const data = await API.get(`/admin/appointments?${qs}`);
+        const appts = data.appointments || [];
+        const statusMap = { booked:'badge-info', 'in-progress':'badge-warning', completed:'badge-success', missed:'badge-danger', cancelled:'badge-neutral' };
+        document.getElementById('appts-tbody').innerHTML = appts.length === 0
+          ? `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-3)">No appointments found</td></tr>`
+          : appts.map(a => `
+            <tr>
+              <td><strong>#${a.tokenNumber}</strong>${a.isEmergency ? ' <span class="badge badge-danger">🚨</span>' : ''}</td>
+              <td>${a.userId?.name || '—'}<br><small style="color:var(--text-3)">${a.userId?.phone || ''}</small></td>
+              <td>Dr. ${a.doctorId?.userId?.name || '—'}</td>
+              <td>${formatDate(a.date)}</td>
+              <td>${formatTime(a.slotTime)}</td>
+              <td><span class="badge ${statusMap[a.status]}">${a.status}</span></td>
+              <td>
+                ${['booked','in-progress'].includes(a.status) ? `
+                  <button class="btn btn-sm btn-primary" onclick="updateAppt('${a._id}','completed')">✅</button>
+                  <button class="btn btn-sm btn-secondary" onclick="updateAppt('${a._id}','missed')">⏭</button>
+                ` : '—'}
+              </td>
+            </tr>`).join('');
+      } catch (err) { showToast('Failed to load appointments.', 'error'); }
+    }
+
+    async function updateAppt(id, status) {
+      try {
+        await API.put(`/appointments/${id}/update-status`, { status });
+        showToast(`Marked as ${status}`, 'success');
+        loadAdminAppts();
+      } catch (err) { showToast('Failed.', 'error'); }
+    }
+
+    async function loadDoctors() {
+      try {
+        const data = await API.get('/doctors');
+        const docs = data.doctors || [];
+        document.getElementById('doctors-grid').innerHTML = docs.length === 0
+          ? `<div class="empty-state"><div class="empty-state-icon">👨‍⚕️</div><h3>No doctors yet</h3></div>`
+          : docs.map(d => `
+            <div class="doctor-manage-card">
+              <div class="doctor-avatar" style="width:48px;height:48px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem">${(d.userId?.name||'D')[0]}</div>
+              <div style="flex:1">
+                <strong>Dr. ${d.userId?.name || ''}</strong>
+                <div style="font-size:.82rem;color:var(--text-3)">${d.specialization || ''} · ${d.experience}yr exp</div>
+                <div style="font-size:.78rem;color:var(--text-3)">${d.workingHours?.start}–${d.workingHours?.end} · ${d.slotDuration}min slots</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:.9rem;font-weight:600;color:var(--navy)">₹${d.consultationFee || 0}</div>
+                <div class="slot-status ${d.isAvailable ? 'available' : 'offline'}" style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-top:.25rem"></div>
+              </div>
+            </div>
+          `).join('');
+      } catch (err) { showToast('Failed.', 'error'); }
+    }
+
+    async function loadDoctorsForSlots() {
+      try {
+        const data = await API.get('/doctors');
+        const sel = document.getElementById('slot-doctor');
+        sel.innerHTML = (data.doctors || []).map(d => `<option value="${d._id}">Dr. ${d.userId?.name} — ${d.specialization}</option>`).join('');
+        document.getElementById('slot-date').value = new Date().toISOString().split('T')[0];
+      } catch (err) {}
+    }
+
+    async function generateSlots() {
+      const doctorId = document.getElementById('slot-doctor').value;
+      const date     = document.getElementById('slot-date').value;
+      if (!doctorId || !date) { showToast('Please select doctor and date.', 'error'); return; }
+      try {
+        const data = await API.post('/admin/generate-slots', { doctorId, date });
+        document.getElementById('slot-result').innerHTML = `<div class="badge badge-success">✅ Generated ${data.slots?.length || 0} slots for ${formatDate(date)}</div>`;
+        showToast(`Created ${data.slots?.length || 0} slots!`, 'success');
+      } catch (err) { showToast(err.error || 'Failed to generate slots.', 'error'); }
+    }
+
+    function openAddDoctorModal() { document.getElementById('add-doctor-modal').classList.add('open'); }
+
+    document.getElementById('add-doctor-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await API.post('/doctors', {
+          userId: document.getElementById('ad-userid').value,
+          specialization: document.getElementById('ad-spec').value,
+          qualification: document.getElementById('ad-qual').value,
+          experience: parseInt(document.getElementById('ad-exp').value),
+          consultationFee: parseInt(document.getElementById('ad-fee').value),
+          slotDuration: parseInt(document.getElementById('ad-slot').value),
+          workingHours: {
+            start: document.getElementById('ad-start').value,
+            end: document.getElementById('ad-end').value,
+          },
+        });
+        document.getElementById('add-doctor-modal').classList.remove('open');
+        showToast('Doctor profile created!', 'success');
+        loadDoctors();
+      } catch (err) { showToast(err.error || 'Failed to create doctor.', 'error'); }
+    });
+
+    loadDashboard();
+  </script>
+</body>
+</html>

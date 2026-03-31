@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Clinic — My Appointments</title>
+  <link rel="stylesheet" href="assets/css/global.css">
+  <style>
+    .filter-tabs { display:flex; gap:.5rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+    .filter-tab {
+      padding:.45rem 1rem; border-radius:99px; font-size:.85rem; font-weight:600;
+      cursor:pointer; border:1.5px solid var(--border); background:var(--white);
+      color:var(--text-2); transition:all var(--transition);
+    }
+    .filter-tab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+    .appt-card {
+      background:var(--white); border-radius:var(--radius); padding:1.25rem;
+      box-shadow:var(--shadow); border-left:4px solid var(--border);
+      transition:all var(--transition); display:grid;
+      grid-template-columns:60px 1fr auto; gap:1rem; align-items:center;
+    }
+    .appt-card:hover { transform:translateY(-1px); box-shadow:var(--shadow-lg); }
+    .appt-card.status-booked      { border-left-color:#3b82f6; }
+    .appt-card.status-completed   { border-left-color:var(--teal); }
+    .appt-card.status-missed      { border-left-color:var(--red); }
+    .appt-card.status-cancelled   { border-left-color:var(--text-3); }
+    .appt-card.status-in-progress { border-left-color:var(--gold); }
+    .date-box {
+      background:var(--navy); color:#fff; border-radius:var(--radius-sm);
+      padding:.5rem .25rem; text-align:center; font-weight:700;
+    }
+    .date-box .d-day   { font-size:1.4rem; line-height:1.1; }
+    .date-box .d-month { font-size:.68rem; text-transform:uppercase; opacity:.7; }
+    .appt-actions { display:flex; gap:.5rem; flex-direction:column; align-items:flex-end; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-brand" href="/dashboard.html"><div class="brand-icon">🏥</div> Smart Clinic</a>
+    <ul class="navbar-nav">
+      <li><a href="/dashboard.html">Dashboard</a></li>
+      <li><a href="/book.html">Book Slot</a></li>
+      <li><a href="/queue.html">Queue Status</a></li>
+      <li><a href="/appointments.html" class="active">My Appointments</a></li>
+    </ul>
+    <div class="navbar-user">
+      <div class="avatar" id="user-avatar">?</div>
+      <span id="user-name"></span>
+      <button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+      <div>
+        <h1 class="page-title">My Appointments</h1>
+        <p class="page-subtitle">Full history of your clinic visits</p>
+      </div>
+      <a href="/book.html" class="btn btn-primary">+ Book New</a>
+    </div>
+
+    <div class="filter-tabs">
+      <div class="filter-tab active" onclick="setFilter('')">All</div>
+      <div class="filter-tab" onclick="setFilter('booked')">🔵 Upcoming</div>
+      <div class="filter-tab" onclick="setFilter('completed')">✅ Completed</div>
+      <div class="filter-tab" onclick="setFilter('missed')">❌ Missed</div>
+      <div class="filter-tab" onclick="setFilter('cancelled')">🚫 Cancelled</div>
+    </div>
+
+    <div id="appt-list" style="display:flex;flex-direction:column;gap:.75rem">
+      <div style="text-align:center;padding:3rem;color:var(--text-3)">
+        <div class="spinner" style="margin:0 auto 1rem"></div>Loading appointments…
+      </div>
+    </div>
+
+    <div id="pagination" style="display:flex;justify-content:center;gap:.5rem;margin-top:2rem"></div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <h3 class="modal-title">Appointment Details</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="assets/js/api.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+    const user = Auth.getUser();
+    document.getElementById('user-name').textContent = user?.name || '';
+    document.getElementById('user-avatar').textContent = (user?.name || 'U')[0].toUpperCase();
+
+    let currentFilter = '', currentPage = 1;
+
+    function setFilter(f) {
+      currentFilter = f;
+      currentPage = 1;
+      document.querySelectorAll('.filter-tab').forEach((t, i) => {
+        const filters = ['', 'booked', 'completed', 'missed', 'cancelled'];
+        t.classList.toggle('active', filters[i] === f);
+      });
+      loadAppointments();
+    }
+
+    async function loadAppointments() {
+      const list = document.getElementById('appt-list');
+      list.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--text-3)"><div class="spinner" style="margin:0 auto 1rem"></div></div>`;
+      try {
+        const qs = new URLSearchParams({ page: currentPage, limit: 10 });
+        if (currentFilter) qs.set('status', currentFilter);
+        const data = await API.get(`/appointments/my-appointments?${qs}`);
+        const appts = data.appointments || [];
+
+        if (appts.length === 0) {
+          list.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <h3>No appointments found</h3>
+              <p>${currentFilter ? 'No ' + currentFilter + ' appointments.' : 'Book your first appointment!'}</p>
+              <a href="/book.html" class="btn btn-primary" style="margin-top:1rem">Book Now</a>
+            </div>`;
+          document.getElementById('pagination').innerHTML = '';
+          return;
+        }
+
+        const statusMap = {
+          booked: 'badge-info', completed: 'badge-success',
+          missed: 'badge-danger', cancelled: 'badge-neutral', 'in-progress': 'badge-warning'
+        };
+        list.innerHTML = appts.map(a => {
+          const d = new Date(a.date + 'T00:00:00');
+          const month = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+          return `
+          <div class="appt-card status-${a.status}" onclick="viewDetail('${a._id}')">
+            <div class="date-box">
+              <div class="d-day">${d.getDate()}</div>
+              <div class="d-month">${month}</div>
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:1rem;color:var(--navy)">Dr. ${a.doctorId?.userId?.name || 'Doctor'}</div>
+              <div style="font-size:.85rem;color:var(--text-2);margin:.2rem 0">${a.doctorId?.specialization || ''}</div>
+              <div style="font-size:.82rem;color:var(--text-3)">🕐 ${formatTime(a.slotTime)} · Token #${a.tokenNumber}</div>
+              ${a.symptoms ? `<div style="font-size:.8rem;color:var(--text-3);margin-top:.25rem">Symptoms: ${a.symptoms.substring(0,60)}…</div>` : ''}
+            </div>
+            <div class="appt-actions">
+              <span class="badge ${statusMap[a.status] || 'badge-neutral'}">${a.status}</span>
+              ${a.status === 'booked' ? `
+                <a href="/queue.html?doctorId=${a.doctorId?._id}&date=${a.date}&apptId=${a._id}" class="btn btn-sm btn-secondary" onclick="event.stopPropagation()">Track Queue</a>
+                <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();cancelAppt('${a._id}')">Cancel</button>
+              ` : ''}
+            </div>
+          </div>`;
+        }).join('');
+
+        // Pagination
+        const total = data.totalPages || 1;
+        if (total > 1) {
+          let pages = '';
+          for (let i = 1; i <= total; i++) {
+            pages += `<button class="btn btn-sm ${i === currentPage ? 'btn-primary' : 'btn-secondary'}" onclick="goPage(${i})">${i}</button>`;
+          }
+          document.getElementById('pagination').innerHTML = pages;
+        }
+      } catch (err) {
+        list.innerHTML = `<div class="empty-state"><p>Failed to load appointments.</p></div>`;
+      }
+    }
+
+    function goPage(p) { currentPage = p; loadAppointments(); }
+
+    async function viewDetail(id) {
+      document.getElementById('modal-content').innerHTML = `<div style="text-align:center;padding:2rem"><div class="spinner" style="margin:0 auto"></div></div>`;
+      document.getElementById('detail-modal').classList.add('open');
+      try {
+        const data = await API.get(`/appointments/${id}`);
+        const a = data.appointment;
+        const statusMap = { booked:'badge-info', completed:'badge-success', missed:'badge-danger', cancelled:'badge-neutral', 'in-progress':'badge-warning' };
+        document.getElementById('modal-content').innerHTML = `
+          <div style="display:grid;gap:.75rem">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:1.1rem;font-weight:700;color:var(--navy)">Dr. ${a.doctorId?.userId?.name || 'Doctor'}</div>
+                <div style="color:var(--text-3);font-size:.85rem">${a.doctorId?.specialization || ''}</div>
+              </div>
+              <span class="badge ${statusMap[a.status]}">${a.status}</span>
+            </div>
+            <div style="background:var(--ivory-2);border-radius:var(--radius-sm);padding:1rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem;font-size:.9rem">
+              <div><span style="color:var(--text-3)">Date</span><br><strong>${formatDate(a.date)}</strong></div>
+              <div><span style="color:var(--text-3)">Time</span><br><strong>${formatTime(a.slotTime)}</strong></div>
+              <div><span style="color:var(--text-3)">Token #</span><br><strong style="font-size:1.2rem;color:var(--teal)">${a.tokenNumber}</strong></div>
+              ${a.isEmergency ? '<div><span style="color:var(--text-3)">Type</span><br><strong style="color:var(--red)">🚨 Emergency</strong></div>' : ''}
+            </div>
+            ${a.symptoms ? `<div><strong>Symptoms:</strong><br><p style="font-size:.9rem;margin-top:.3rem">${a.symptoms}</p></div>` : ''}
+            ${a.notes ? `<div style="background:var(--teal-xl);border-radius:var(--radius-sm);padding:.75rem"><strong style="color:var(--teal)">Doctor's Notes:</strong><br><p style="font-size:.9rem;margin-top:.3rem">${a.notes}</p></div>` : ''}
+            ${a.status === 'booked' ? `
+              <div style="display:flex;gap:.5rem;margin-top:.5rem">
+                <a href="/queue.html?doctorId=${a.doctorId?._id}&date=${a.date}" class="btn btn-primary btn-full">Track Queue</a>
+                <button class="btn btn-danger btn-full" onclick="cancelAppt('${a._id}')">Cancel</button>
+              </div>` : ''}
+          </div>`;
+      } catch (err) {
+        document.getElementById('modal-content').innerHTML = `<p style="color:var(--red)">Failed to load details.</p>`;
+      }
+    }
+
+    function closeModal() { document.getElementById('detail-modal').classList.remove('open'); }
+
+    async function cancelAppt(id) {
+      if (!confirm('Cancel this appointment?')) return;
+      try {
+        await API.put(`/appointments/${id}/cancel`, {});
+        showToast('Appointment cancelled.', 'success');
+        closeModal();
+        loadAppointments();
+      } catch (err) {
+        showToast(err.error || 'Failed to cancel.', 'error');
+      }
+    }
+
+    loadAppointments();
+  </script>
+</body>
+</html>
