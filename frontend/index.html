@@ -267,7 +267,15 @@
         Auth.setUser(data.user);
         showToast('Account created! Welcome to Smart Clinic.', 'success');
 
-        setTimeout(() => window.location.href = '/dashboard.html', 700);
+        setTimeout(() => {
+          if (data.user.role === 'admin') {
+            window.location.href = '/admin.html';
+          } else if (data.user.role === 'doctor') {
+            window.location.href = '/doctor-dashboard.html';
+          } else {
+            window.location.href = '/dashboard.html';
+          }
+        }, 700);
       } catch (err) {
         const msg = err.errors ? err.errors[0].msg : (err.error || 'Registration failed.');
         showToast(msg, 'error');
