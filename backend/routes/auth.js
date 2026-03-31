@@ -29,16 +29,18 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, phone, password, dateOfBirth, gender, bloodGroup } = req.body;
+    const { name, email, phone, password, dateOfBirth, gender, bloodGroup, role } = req.body;
 
     try {
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({ error: 'Email already registered.' });
+      // Check if user already exists
+      const userExists = await User.findOne({ email });
+      if (userExists) {
+        return res.status(400).json({ error: 'User already exists.' });
       }
 
-      const user = new User({ name, email, phone, password, dateOfBirth, gender, bloodGroup });
+      const user = new User({ name, email, phone, password, dateOfBirth, gender, bloodGroup, role: role || 'patient' });
       await user.save();
+      console.log(`✅ User registered: ${email}`);
 
       const token = generateToken(user._id);
 
@@ -48,8 +50,8 @@ router.post(
         user: user.toJSON(),
       });
     } catch (err) {
-      console.error('Register error:', err);
-      res.status(500).json({ error: 'Server error during registration.' });
+      console.error('❌ Registration Error:', err);
+      res.status(500).json({ error: 'Server error during registration.', detail: err.message });
     }
   }
 );
@@ -72,13 +74,16 @@ router.post(
     const { email, password } = req.body;
 
     try {
+      console.log(`🔑 Login attempt for: ${email}`);
       const user = await User.findOne({ email }).select('+password');
       if (!user) {
+        console.log(`❌ Login failed: User not found (${email})`);
         return res.status(401).json({ error: 'Invalid credentials.' });
       }
 
       const isMatch = await user.comparePassword(password);
       if (!isMatch) {
+        console.log(`❌ Login failed: Incorrect password for (${email})`);
         return res.status(401).json({ error: 'Invalid credentials.' });
       }
 
