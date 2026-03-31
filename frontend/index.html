@@ -166,6 +166,21 @@
             <option>O+</option><option>O-</option>
           </select>
         </div>
+
+        <div class="form-group">
+          <label>Join as</label>
+          <div class="role-selection">
+            <label class="role-option active" id="role-patient-label">
+              <input type="radio" name="role" value="patient" checked style="display:none">
+              <span>Patient</span>
+            </label>
+            <label class="role-option" id="role-doctor-label">
+              <input type="radio" name="role" value="doctor" style="display:none">
+              <span>Doctor</span>
+            </label>
+          </div>
+        </div>
+
         <button type="submit" class="btn btn-primary btn-full btn-lg" id="register-btn">
           Create Account
         </button>
@@ -245,6 +260,7 @@
           dateOfBirth: document.getElementById('reg-dob').value || undefined,
           gender: document.getElementById('reg-gender').value || undefined,
           bloodGroup: document.getElementById('reg-blood').value || undefined,
+          role: document.querySelector('input[name="role"]:checked').value,
         }, false);
 
         Auth.setToken(data.token);
@@ -258,6 +274,16 @@
         btn.disabled = false;
         btn.textContent = 'Create Account';
       }
+    });
+
+    // Role selection handler
+    document.querySelectorAll('.role-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.role-option').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+        const input = opt.querySelector('input');
+        if (input) input.checked = true;
+      });
     });
   </script>
 </body>

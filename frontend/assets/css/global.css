@@ -98,6 +98,26 @@ input.error, select.error { border-color: var(--red); }
 .form-error { font-size: .82rem; color: var(--red); margin-top: .2rem; }
 .form-hint  { font-size: .82rem; color: var(--text-3); }
 
+/* ── Role Selection UI ── */
+.role-selection {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .75rem;
+  background: var(--ivory-2); padding: 5px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border); margin-top: .25rem;
+}
+.role-option {
+  display: flex; align-items: center; justify-content: center;
+  padding: .7rem; border-radius: 8px; cursor: pointer;
+  transition: all var(--transition); font-weight: 600; font-size: .9rem;
+  color: var(--text-3); text-align: center;
+}
+.role-option.active {
+  background: var(--teal); color: #fff;
+  box-shadow: 0 4px 12px rgba(13,148,136,.25);
+}
+.role-option:not(.active):hover {
+  background: rgba(13,148,136,.08); color: var(--teal);
+}
+
 /* ── Cards ── */
 .card {
   background: var(--white);
