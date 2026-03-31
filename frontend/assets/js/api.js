@@ -1,5 +1,8 @@
 // API Configuration
-const API_BASE = window.API_BASE || `${window.location.origin}/api`;
+// Use same origin when served from backend, or fallback to port 5000
+const API_BASE = window.API_BASE || (window.location.port === '5000'
+  ? `${window.location.origin}/api`
+  : `http://localhost:5000/api`);
 
 // Token management
 const Auth = {

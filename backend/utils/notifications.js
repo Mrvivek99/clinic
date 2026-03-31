@@ -1,6 +1,6 @@
 /**
  * Notification utilities for SMS (Twilio) and Push (Firebase)
- * Falls back gracefully if credentials are not configured
+ * Falls back gracefully if credentials are not configured or packages not installed
  */
 
 let twilioClient = null;
@@ -9,9 +9,13 @@ let firebaseAdmin = null;
 // Initialize Twilio
 function initTwilio() {
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-    const twilio = require('twilio');
-    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    console.log('✅ Twilio initialized');
+    try {
+      const twilio = require('twilio');
+      twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+      console.log('✅ Twilio initialized');
+    } catch (err) {
+      console.warn('⚠️  Twilio package not installed. SMS notifications disabled.');
+    }
   } else {
     console.warn('⚠️  Twilio credentials not configured. SMS notifications disabled.');
   }
@@ -24,18 +28,23 @@ function initFirebase() {
     process.env.FIREBASE_PRIVATE_KEY &&
     process.env.FIREBASE_CLIENT_EMAIL
   ) {
-    const admin = require('firebase-admin');
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        }),
-      });
+    try {
+      const admin = require('firebase-admin');
+      if (!admin.apps.length) {
+        admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          }),
+        });
+      }
+      firebaseAdmin = admin;
+      console.log('✅ Firebase Admin initialized');
+    } catch (err) {
+      console.warn('⚠️  Firebase Admin package not installed or config error. Push notifications disabled.');
+      console.warn('   Error:', err.message);
     }
-    firebaseAdmin = admin;
-    console.log('✅ Firebase Admin initialized');
   } else {
     console.warn('⚠️  Firebase credentials not configured. Push notifications disabled.');
   }

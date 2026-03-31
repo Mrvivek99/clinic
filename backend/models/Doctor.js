@@ -10,15 +10,16 @@ const doctorSchema = new mongoose.Schema(
     },
     specialization: {
       type: String,
-      required: [true, 'Specialization is required'],
+      required: true,
       trim: true,
     },
     qualification: {
       type: String,
+      default: null,
       trim: true,
     },
     experience: {
-      type: Number, // years
+      type: Number,
       default: 0,
     },
     consultationFee: {
@@ -26,12 +27,11 @@ const doctorSchema = new mongoose.Schema(
       default: 0,
     },
     slotDuration: {
-      type: Number, // minutes per slot
-      default: 15,
+      type: Number,
+      default: 15, // minutes per slot
     },
     workingDays: {
       type: [String],
-      enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
       default: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
     },
     workingHours: {
@@ -56,8 +56,8 @@ const doctorSchema = new mongoose.Schema(
     },
     bio: {
       type: String,
+      default: null,
       trim: true,
-      maxlength: 500,
     },
     avatarUrl: {
       type: String,
@@ -66,16 +66,5 @@ const doctorSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// Populate user info
-doctorSchema.virtual('user', {
-  ref: 'User',
-  localField: 'userId',
-  foreignField: '_id',
-  justOne: true,
-});
-
-doctorSchema.set('toJSON', { virtuals: true });
-doctorSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Doctor', doctorSchema);

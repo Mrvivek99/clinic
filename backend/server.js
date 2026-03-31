@@ -15,19 +15,15 @@ const adminRoutes = require('./routes/admin');
 const doctorRoutes = require('./routes/doctors');
 const slotRoutes = require('./routes/slots');
 
-// Import scheduler
-const { initScheduler } = require('./utils/scheduler');
-
 const app = express();
 const server = http.createServer(app);
 
 const frontendPath = path.join(__dirname, '../frontend');
-app.use(express.static(frontendPath));
 
 // Socket.io setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || '*',
+    origin: '*',
     methods: ['GET', 'POST'],
   },
 });
@@ -38,17 +34,29 @@ app.set('io', io);
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 200,
   message: { error: 'Too many requests, please try again later.' },
 });
 
-// Middleware
+// Middleware — CORS must allow any origin for local dev (frontend may be on different port)
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: '*',
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Simple request logger for debugging
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`HTTP  ${new Date().toLocaleString()} ${req.ip} ${req.method} ${req.originalUrl} → ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
+
+// Rate limit only API routes
 app.use('/api/', limiter);
 
 // Health check
@@ -56,7 +64,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// API Routes
+// API Routes — these MUST come before static file serving and catch-all
 app.use('/api/auth', authRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/queue', queueRoutes);
@@ -64,13 +72,15 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/slots', slotRoutes);
 
+// Serve static files from frontend AFTER API routes
+app.use(express.static(frontendPath));
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
   socket.on('join-queue-room', (date) => {
     socket.join(`queue-${date}`);
-    console.log(`Socket ${socket.id} joined queue room for ${date}`);
   });
 
   socket.on('join-doctor-room', (doctorId) => {
@@ -82,24 +92,23 @@ io.on('connection', (socket) => {
   });
 });
 
-// Global error handler
+// Serve frontend for any non-API GET request (SPA fallback)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+// 404 handler — for non-GET or unmatched API routes
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// Global error handler (must have 4 params to be recognized as error handler)
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Unhandled error:', err.stack);
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
-});
-
-// Serve frontend for any non-API GET request
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/') || req.path.startsWith('/health')) return next();
-  res.sendFile(path.join(frontendPath, 'index.html'));
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
 });
 
 // Connect to MongoDB and start server
@@ -110,13 +119,15 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/clinic_db
     console.log('✅ Connected to MongoDB');
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      // Initialize cron scheduler for reminders
-      initScheduler(io);
+      console.log(`🌐 Open http://localhost:${PORT} in your browser`);
     });
   })
   .catch((err) => {
-    console.error('❌ MongoDB connection error:', err);
-    process.exit(1);
+    console.error('❌ MongoDB connection error:', err.message);
+    // Start the server anyway so the user can see the frontend
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT} (WITHOUT MongoDB)`);
+    });
   });
 
 module.exports = { app, io };
