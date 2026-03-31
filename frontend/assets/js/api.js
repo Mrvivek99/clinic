@@ -1,8 +1,9 @@
 // API Configuration
-// Use same origin when served from backend, or fallback to port 5000
-const API_BASE = window.API_BASE || (window.location.port === '5000'
-  ? `${window.location.origin}/api`
-  : `http://localhost:5000/api`);
+// For production, replace 'your-backend-app.onrender.com' with your actual Render URL
+const PROD_URL = 'https://smart-clinic-api-v1.onrender.com'; // Change this after deploying to Render
+const API_BASE = window.API_BASE || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? `http://localhost:5000/api`
+  : `${PROD_URL}/api`);
 
 // Token management
 const Auth = {

@@ -38,9 +38,23 @@ const limiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 });
 
-// Middleware — CORS must allow any origin for local dev (frontend may be on different port)
+// Middleware — CORS must allow the frontend URLs
+const allowedOrigins = [
+  'http://localhost:5000',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  process.env.FRONTEND_URL, // This is your Vercel URL on Render
+];
+
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl) or if in allowedOrigins
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Blocked by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());
