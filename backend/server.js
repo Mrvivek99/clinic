@@ -38,9 +38,20 @@ const limiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 });
 
+// Secret route to seed database on Render (since Shell is not available on Free Tier)
+app.get('/api/debug/seed', async (req, res) => {
+  try {
+    const { seedDatabase } = require('./seed-logic'); // I'll create this file next
+    await seedDatabase();
+    res.json({ message: '🎉 Database seeded successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Seed failed', detail: err.message });
+  }
+});
+
 // Middleware — Extremely permissive CORS for debugging
 app.use(cors({
-  origin: true, // Echoes back the request origin, allowing everything!
+  origin: true,
   credentials: true,
 }));
 
