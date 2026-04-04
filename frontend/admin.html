@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Clinic — Admin Panel</title>
+  <title>Smart Clinic — Admin Dashboard</title>
   <link rel="stylesheet" href="assets/css/global.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -45,6 +45,8 @@
     <a class="navbar-brand" href="/admin.html"><div class="brand-icon">🏥</div> Smart Clinic</a>
     <ul class="navbar-nav">
       <li><a href="/doctor-dashboard.html">Doctor View</a></li>
+      <li><a href="/admin.html" class="active">Admin Dashboard</a></li>
+      <li><a href="/profile.html">My Profile</a></li>
     </ul>
     <div class="navbar-user">
       <div class="avatar" id="user-avatar">A</div>
@@ -58,7 +60,7 @@
     <div class="sidebar">
       <div class="sidebar-section">
         <div class="sidebar-label">Overview</div>
-        <div class="sidebar-link active" onclick="switchTab('dashboard')">📊 Dashboard</div>
+        <div class="sidebar-link active" onclick="switchTab('dashboard')">📊 Admin Dashboard</div>
         <div class="sidebar-link" onclick="switchTab('analytics')">📈 Analytics</div>
       </div>
       <div class="sidebar-section">
@@ -66,6 +68,10 @@
         <div class="sidebar-link" onclick="switchTab('appointments')">📅 Appointments</div>
         <div class="sidebar-link" onclick="switchTab('doctors')">👨‍⚕️ Doctors</div>
         <div class="sidebar-link" onclick="switchTab('slots')">⏰ Manage Slots</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Account</div>
+        <a href="/profile.html" class="sidebar-link" style="text-decoration:none">👤 My Profile</a>
       </div>
     </div>
 

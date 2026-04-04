@@ -97,4 +97,70 @@ router.put('/:id', auth, requireRole('admin', 'doctor'), async (req, res) => {
   }
 });
 
+// @route  GET /api/doctors/me
+// @desc   Get current logged in doctor profile
+// @access Private (doctor)
+router.get('/me', auth, requireRole('doctor'), async (req, res) => {
+  try {
+    const doctor = await Doctor.findOne({ userId: req.user._id }).populate('userId', 'name email phone avatarUrl');
+    if (!doctor) return res.status(404).json({ error: 'Doctor profile not found.' });
+    res.json({ doctor });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// @route  POST /api/doctors/me
+// @desc   Create or update current doctor profile
+// @access Private (doctor)
+router.post('/me', auth, requireRole('doctor'), async (req, res) => {
+  const {
+    specialization,
+    qualification,
+    experience,
+    consultationFee,
+    slotDuration,
+    workingDays,
+    workingHours,
+    breakTime,
+    maxPatientsPerDay,
+    bio,
+  } = req.body;
+
+  try {
+    let doctor = await Doctor.findOne({ userId: req.user._id });
+
+    if (doctor) {
+      // Update existing
+      doctor = await Doctor.findByIdAndUpdate(
+        doctor._id,
+        { $set: req.body },
+        { new: true, runValidators: true }
+      );
+    } else {
+      // Create new
+      doctor = new Doctor({
+        userId: req.user._id,
+        specialization,
+        qualification,
+        experience,
+        consultationFee,
+        slotDuration,
+        workingDays,
+        workingHours,
+        breakTime,
+        maxPatientsPerDay,
+        bio,
+      });
+      await doctor.save();
+    }
+
+    await doctor.populate('userId', 'name email phone');
+    res.json({ message: 'Doctor profile saved.', doctor });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.', detail: err.message });
+  }
+});
+
 module.exports = router;
+

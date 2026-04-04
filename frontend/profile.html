@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Clinic — My Profile</title>
+  <link rel="stylesheet" href="assets/css/global.css">
+  <style>
+    .profile-layout {
+      max-width: 800px; margin: 0 auto;
+      display: grid; grid-template-columns: 240px 1fr; gap: 2rem;
+    }
+    .profile-sidebar {
+      background: var(--white); border-radius: var(--radius-lg); padding: 2rem;
+      box-shadow: var(--shadow); text-align: center; height: fit-content;
+    }
+    .profile-avatar-large {
+      width: 100px; height: 100px; border-radius: 50%; background: var(--teal);
+      color: #fff; font-size: 2.5rem; display: inline-flex;
+      align-items: center; justify-content: center; margin-bottom: 1.5rem;
+      font-weight: 700;
+    }
+    .profile-main {
+      background: var(--white); border-radius: var(--radius-lg); padding: 2.5rem;
+      box-shadow: var(--shadow);
+    }
+    .section-header {
+      margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1.5px solid var(--ivory-2);
+    }
+    .info-group { margin-bottom: 2rem; }
+    .info-group h3 { font-size: 1.1rem; margin-bottom: 1.25rem; color: var(--navy); }
+  </style>
+</head>
+<body>
+  <nav class="navbar" id="main-nav">
+    <!-- Navbar will be injected based on role -->
+    <a class="navbar-brand" href="#"><div class="brand-icon">🏥</div> Smart Clinic</a>
+    <ul class="navbar-nav" id="nav-links"></ul>
+    <div class="navbar-user">
+      <div class="avatar" id="top-avatar">?</div>
+      <span id="top-name">User</span>
+      <button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="page-header">
+      <h1 class="page-title">Account Settings</h1>
+      <p class="page-subtitle">Manage your personal information and account preferences</p>
+    </div>
+
+    <div class="profile-layout">
+      <!-- Left Sidebar -->
+      <aside class="profile-sidebar">
+        <div class="profile-avatar-large" id="p-avatar-big">U</div>
+        <h2 id="p-name-sidebar" style="font-size:1.3rem;margin-bottom:.25rem">User Name</h2>
+        <p id="p-role-tag" style="font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:var(--teal);font-weight:700">Patient</p>
+        <div style="margin-top:2rem;text-align:left;font-size:.85rem;color:var(--text-3)">
+          <div style="margin-bottom:.75rem">📧 <span id="p-email-sidebar">email@example.com</span></div>
+          <div>📞 <span id="p-phone-sidebar">+91 00000 00000</span></div>
+        </div>
+      </aside>
+
+      <!-- Main Form -->
+      <main class="profile-main">
+        <form id="profile-form">
+          <div class="info-group">
+            <h3>👤 Basic Information</h3>
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" id="name" required placeholder="Enter your full name">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="email" disabled title="Email cannot be changed">
+                <span class="form-hint">Email is linked to your account</span>
+              </div>
+              <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="phone" required placeholder="+91 98765 43210">
+              </div>
+            </div>
+          </div>
+
+          <div class="info-group">
+            <h3>🩸 Medical & Personal</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Date of Birth</label>
+                <input type="date" id="dateOfBirth">
+              </div>
+              <div class="form-group">
+                <label>Gender</label>
+                <select id="gender">
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Blood Group</label>
+              <select id="bloodGroup">
+                <option value="">Select Blood Group</option>
+                <option>A+</option><option>A-</option>
+                <option>B+</option><option>B-</option>
+                <option>AB+</option><option>AB-</option>
+                <option>O+</option><option>O-</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:1rem;margin-top:2rem;padding-top:2rem;border-top:1.5px solid var(--ivory-2)">
+            <button type="button" class="btn btn-secondary" onclick="window.history.back()">Back</button>
+            <button type="submit" class="btn btn-primary" id="save-btn">💾 Save Changes</button>
+          </div>
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="assets/js/api.js"></script>
+  <script>
+    if (!requireAuth()) throw '';
+    const user = Auth.getUser();
+
+    // Setup UI based on role
+    function setupUI() {
+      const navLinks = document.getElementById('nav-links');
+      const role = user.role;
+      
+      const links = {
+        patient: [
+          { name: 'Patient Dashboard', href: '/dashboard.html' },
+          { name: 'Book Slot', href: '/book.html' },
+          { name: 'Queue Status', href: '/queue.html' },
+          { name: 'My Profile', href: '/profile.html', active: true }
+        ],
+        admin: [
+          { name: 'Admin Dashboard', href: '/admin.html' },
+          { name: 'Doctor View', href: '/doctor-dashboard.html' },
+          { name: 'My Profile', href: '/profile.html', active: true }
+        ],
+        doctor: [
+          { name: 'Queue', href: '/doctor-dashboard.html' },
+          { name: 'Settings', href: '/doctor-settings.html' },
+          { name: 'My Profile', href: '/profile.html', active: true }
+        ]
+      };
+
+      const currentLinks = links[role] || links.patient;
+      navLinks.innerHTML = currentLinks.map(l => `<li><a href="${l.href}" class="${l.active ? 'active' : ''}">${l.name}</a></li>`).join('');
+      
+      document.getElementById('top-name').textContent = user.name;
+      document.getElementById('top-avatar').textContent = user.name[0].toUpperCase();
+      document.getElementById('p-avatar-big').textContent = user.name[0].toUpperCase();
+      document.getElementById('p-name-sidebar').textContent = user.name;
+      document.getElementById('p-role-tag').textContent = role;
+      document.getElementById('p-email-sidebar').textContent = user.email;
+      document.getElementById('p-phone-sidebar').textContent = user.phone || 'No phone';
+
+      // Fill form
+      document.getElementById('name').value = user.name || '';
+      document.getElementById('email').value = user.email || '';
+      document.getElementById('phone').value = user.phone || '';
+      document.getElementById('dateOfBirth').value = user.dateOfBirth ? user.dateOfBirth.split('T')[0] : '';
+      document.getElementById('gender').value = user.gender || '';
+      document.getElementById('bloodGroup').value = user.bloodGroup || '';
+    }
+
+    document.getElementById('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        const payload = {
+          name: document.getElementById('name').value,
+          phone: document.getElementById('phone').value,
+          dateOfBirth: document.getElementById('dateOfBirth').value || undefined,
+          gender: document.getElementById('gender').value || undefined,
+          bloodGroup: document.getElementById('bloodGroup').value || undefined,
+        };
+
+        const data = await API.put('/auth/profile', payload);
+        Auth.setUser(data.user);
+        showToast('Profile updated successfully!', 'success');
+        setTimeout(() => window.location.reload(), 800);
+      } catch (err) {
+        showToast(err.error || 'Failed to update profile.', 'error');
+        btn.disabled = false;
+        btn.textContent = '💾 Save Changes';
+      }
+    });
+
+    setupUI();
+  </script>
+</body>
+</html>

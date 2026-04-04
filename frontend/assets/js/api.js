@@ -1,9 +1,5 @@
 // API Configuration
-// For production, use your actual Render URL
-const PROD_URL = 'https://clinic-1-kl52.onrender.com';
-const API_BASE = window.API_BASE || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? `http://localhost:5000/api`
-  : `${PROD_URL}/api`);
+const API_BASE = window.API_BASE || `${window.location.origin}/api`;
 
 // Token management
 const Auth = {
