@@ -1,5 +1,8 @@
 {
   "name": "clinic-backend",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "version": "1.0.0",
   "description": "Smart Clinic Appointment & Queue Management System - Backend",
   "main": "server.js",

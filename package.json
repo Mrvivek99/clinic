@@ -1,4 +1,14 @@
 {
+  "name": "smart-clinic-system",
+  "version": "1.0.0",
+  "description": "Smart Clinic Queue and Appointment System",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "install-backend": "cd backend && npm install",
+    "dev": "cd backend && npm run dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "mongodb": "^7.1.1"
   }
