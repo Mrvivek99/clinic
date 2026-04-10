@@ -22,10 +22,11 @@ const auth = async (req, res, next) => {
     req.user = user;
     next();
   } catch (err) {
+    console.error('💥 AUTH ERROR:', err.message);
     if (err.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Token expired. Please login again.' });
     }
-    return res.status(401).json({ error: 'Invalid token.' });
+    return res.status(401).json({ error: 'Invalid token or sessions error.' });
   }
 };
 

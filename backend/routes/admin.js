@@ -75,8 +75,8 @@ router.get('/dashboard', requireRole('admin'), async (req, res) => {
       byDoctor,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    console.error('💥 CRASH in GET /admin/dashboard:', err);
+    res.status(500).json({ error: '💥 CRASH IN ADMIN DASHBOARD 💥', details: err.message });
   }
 });
 
@@ -121,7 +121,8 @@ router.get('/appointments', async (req, res) => {
 
     res.json({ appointments, total, page: parseInt(page) });
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    console.error('💥 CRASH in GET /admin/appointments:', err);
+    res.status(500).json({ error: '💥 CRASH IN ADMIN APPOINTMENTS 💥', details: err.message });
   }
 });
 
@@ -199,8 +200,8 @@ router.post('/emergency-patient', async (req, res) => {
       appointment,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error.' });
+    console.error('💥 CRASH in POST /admin/emergency-patient:', err);
+    res.status(500).json({ error: '💥 CRASH IN EMERGENCY PATIENT 💥', details: err.message });
   }
 });
 
