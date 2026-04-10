@@ -172,10 +172,46 @@ async function sendLoginNotification(user) {
   }
 }
 
+/**
+ * Send registration/welcome alert (Push + SMS)
+ */
+async function sendWelcomeNotification(user) {
+  const title = '🎉 Welcome to Smart Clinic!';
+  const body = `Hi ${user.name}, your account has been successfully created. Thank you for joining!`;
+
+  // 1. Push Notification to all devices (if any registered yet)
+  if (user.fcmTokens && user.fcmTokens.length > 0) {
+    await sendPushNotification(user.fcmTokens, { 
+      title, 
+      body, 
+      data: { type: 'registration_success' } 
+    }).catch(err => console.error('Register push error:', err.message));
+  }
+
+  // 2. SMS Notification
+  if (user.phone && twilioClient) {
+    const message = `🎉 Welcome to Smart Clinic! Hi ${user.name}, your account is ready. Book your first appointment at [Your-Vercel-URL].`;
+    try {
+      await twilioClient.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: user.phone,
+      });
+      console.log(`Welcome SMS sent to ${user.phone}`);
+    } catch (err) {
+      console.error('Welcome SMS error:', err.message);
+    }
+  } else if (user.phone) {
+    console.log(`[SMS Mock] Welcome Alert to ${user.phone}`);
+  }
+}
+
 module.exports = {
   sendSMSReminder,
   sendPushNotification,
   sendBookingConfirmation,
   sendLoginNotification,
+  sendWelcomeNotification,
 };
+
 

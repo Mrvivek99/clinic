@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
-const { sendLoginNotification } = require('../utils/notifications');
+const { sendLoginNotification, sendWelcomeNotification } = require('../utils/notifications');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -51,6 +51,9 @@ router.post(
       }
 
       const token = generateToken(user._id);
+
+      // Send welcome notification (Push + SMS)
+      sendWelcomeNotification(user).catch(err => console.error('Welcome notification error:', err.message));
 
       res.status(201).json({
         message: 'Registration successful',
