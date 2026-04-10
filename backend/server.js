@@ -56,6 +56,16 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// System Status Check (Temporary for verification)
+app.get('/api/status', (req, res) => {
+  const { twilioClient, firebaseAdmin } = require('./utils/notifications');
+  res.json({
+    twilio: !!twilioClient ? '✅ Connected' : '❌ Not Configured',
+    firebase: !!firebaseAdmin ? '✅ Connected' : '❌ Not Configured',
+    env: process.env.NODE_ENV
+  });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/appointments', appointmentRoutes);
