@@ -113,6 +113,12 @@ router.get('/appointments', async (req, res) => {
 
     const total = await Appointment.countDocuments(filter);
 
+    // DEBUG LOG: See who are the patients
+    console.log(`📋 Fetched ${appointments.length} appointments for Date: ${date || 'All'}`);
+    appointments.forEach(a => {
+      console.log(`   - Token #${a.tokenNumber}: ${a.userId?.name || 'Unknown Patient'} [${a.status}]`);
+    });
+
     res.json({ appointments, total, page: parseInt(page) });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
