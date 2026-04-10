@@ -102,11 +102,12 @@ router.put('/:id', auth, requireRole('admin', 'doctor'), async (req, res) => {
 // @access Private (doctor)
 router.get('/me', auth, requireRole('doctor'), async (req, res) => {
   try {
-    const doctor = await Doctor.findOne({ userId: req.user._id }).populate('userId', 'name email phone avatarUrl');
+    const doctor = await Doctor.findOne({ userId: req.user._id }).populate('userId', 'name email phone');
     if (!doctor) return res.status(404).json({ error: 'Doctor profile not found.' });
     res.json({ doctor });
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    console.error('Error in /doctors/me:', err);
+    res.status(500).json({ error: 'Server error.', details: err.message });
   }
 });
 
