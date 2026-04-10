@@ -81,23 +81,27 @@ async function sendSMSReminder(phoneNumber, { patientName, slotTime, tokenNumber
 
 /**
  * Send push notification via Firebase Cloud Messaging
+ * @param {string|string[]} fcmTokens - Single token or array of tokens
  */
-async function sendPushNotification(fcmToken, { title, body, data = {} }) {
-  if (!firebaseAdmin || !fcmToken) {
-    console.log(`[Push Mock] To: ${fcmToken}, Title: ${title}, Body: ${body}`);
+async function sendPushNotification(fcmTokens, { title, body, data = {} }) {
+  if (!firebaseAdmin || !fcmTokens || (Array.isArray(fcmTokens) && fcmTokens.length === 0)) {
+    console.log(`[Push Mock] To: ${fcmTokens}, Title: ${title}, Body: ${body}`);
     return { success: true, mock: true };
   }
+
+  const tokens = Array.isArray(fcmTokens) ? fcmTokens : [fcmTokens];
 
   const message = {
     notification: { title, body },
     data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),
-    token: fcmToken,
     android: { notification: { sound: 'default', priority: 'high' } },
     apns: { payload: { aps: { sound: 'default', badge: 1 } } },
+    tokens: tokens, // Array of tokens
   };
 
   try {
-    const result = await firebaseAdmin.messaging().send(message);
+    const result = await firebaseAdmin.messaging().sendEachForMulticast(message);
+    console.log(`Push notifications sent to ${result.successCount} devices. (${result.failureCount} failed)`);
     return { success: true, messageId: result };
   } catch (err) {
     console.error('FCM error:', err.message);
@@ -119,8 +123,9 @@ async function sendBookingConfirmation(user, appointment) {
     },
   };
 
-  if (user.fcmToken) {
-    await sendPushNotification(user.fcmToken, payload);
+  // Push to all user devices
+  if (user.fcmTokens && user.fcmTokens.length > 0) {
+    await sendPushNotification(user.fcmTokens, payload);
   }
 
   if (user.phone) {
@@ -140,9 +145,9 @@ async function sendLoginNotification(user) {
   const title = '🔐 Login Successful';
   const body = `Welcome back, ${user.name}! You are now logged in.`;
 
-  // 1. Push Notification
-  if (user.fcmToken) {
-    await sendPushNotification(user.fcmToken, { 
+  // 1. Push Notification to all devices
+  if (user.fcmTokens && user.fcmTokens.length > 0) {
+    await sendPushNotification(user.fcmTokens, { 
       title, 
       body, 
       data: { type: 'login_success' } 

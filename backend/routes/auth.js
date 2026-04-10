@@ -135,8 +135,8 @@ router.put('/update-fcm-token', auth, async (req, res) => {
     return res.status(400).json({ error: 'FCM token is required.' });
   }
   try {
-    await User.findByIdAndUpdate(req.user._id, { fcmToken });
-    res.json({ message: 'FCM token updated.' });
+    await User.findByIdAndUpdate(req.user._id, { $addToSet: { fcmTokens: fcmToken } });
+    res.json({ message: 'FCM token registered.' });
   } catch (err) {
     res.status(500).json({ error: 'Server error.' });
   }

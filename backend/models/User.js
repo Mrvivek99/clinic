@@ -32,9 +32,9 @@ const userSchema = new mongoose.Schema(
       enum: ['patient', 'doctor', 'admin'],
       default: 'patient',
     },
-    fcmToken: {
-      type: String,
-      default: null,
+    fcmTokens: {
+      type: [String],
+      default: [],
     },
     dateOfBirth: {
       type: String,
