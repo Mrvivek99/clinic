@@ -206,12 +206,44 @@ async function sendWelcomeNotification(user) {
   }
 }
 
+/**
+ * Send "You are next" alert to the next patient in queue
+ */
+async function sendNextPatientNotification(user) {
+  const title = '🕒 You are Next!';
+  const body = `Hi ${user.name}, the doctor is ready for you soon. You are the next person in the queue. Please be available!`;
+
+  // 1. Push Notification
+  if (user.fcmTokens && user.fcmTokens.length > 0) {
+    await sendPushNotification(user.fcmTokens, { 
+      title, 
+      body, 
+      data: { type: 'next_in_queue' } 
+    }).catch(err => console.error('Next push error:', err.message));
+  }
+
+  // 2. SMS Notification
+  if (user.phone && twilioClient) {
+    const message = `🕒 Smart Clinic: Hi ${user.name}, you are the next patient in the queue. Please be ready!`;
+    try {
+      await twilioClient.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: user.phone,
+      });
+    } catch (err) {
+      console.error('Next SMS error:', err.message);
+    }
+  }
+}
+
 module.exports = {
   sendSMSReminder,
   sendPushNotification,
   sendBookingConfirmation,
   sendLoginNotification,
   sendWelcomeNotification,
+  sendNextPatientNotification,
   twilioClient,
   firebaseAdmin,
 };

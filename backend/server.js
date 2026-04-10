@@ -24,6 +24,8 @@ const server = http.createServer(app);
 const frontendPath = path.join(__dirname, '../frontend');
 app.use(express.static(frontendPath));
 
+
+
 // Socket.io setup
 const io = new Server(server, {
   cors: {
@@ -96,9 +98,9 @@ io.on('connection', (socket) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('💥 GLOBAL ERROR:', err.stack);
+  console.error(err.stack);
   res.status(err.status || 500).json({
-    error: err.message || '💥 GLOBAL SERVER ERROR 💥',
+    error: err.message || 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 });

@@ -19,18 +19,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route  GET /api/doctors/:id
-// @desc   Get doctor by ID
-// @access Public
-router.get('/:id', async (req, res) => {
-  try {
-    const doctor = await Doctor.findById(req.params.id).populate('userId', 'name email');
-    if (!doctor) return res.status(404).json({ error: 'Doctor not found.' });
-    res.json({ doctor });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
-  }
-});
+
 
 // @route  POST /api/doctors
 // @desc   Create a doctor profile (admin only)
@@ -98,50 +87,40 @@ router.put('/:id', auth, requireRole('admin', 'doctor'), async (req, res) => {
   }
 });
 
+
 // @route  GET /api/doctors/me
 // @desc   Get current logged in doctor profile
 // @access Private (doctor)
-router.get('/me', auth, requireRole('doctor'), async (req, res) => {
-  console.log(`🔍 [DEBUG] /doctors/me requested by: ${req.user.email} (ID: ${req.user._id})`);
-  
+router.get('/me', auth, async (req, res) => {
   try {
-    // 1. Validate User context
-    if (!req.user || !req.user._id) {
-       console.error('❌ [ERROR] Request reached route but req.user is empty.');
-       return res.status(500).json({ error: 'Auth context failure.' });
+    if (!req.user || req.user.role !== 'doctor') {
+      return res.status(403).json({ error: 'Access denied: Doctors only.' });
     }
 
-    // 2. Attempt Doctor lookup with explicit error catch
-    let doctor;
-    try {
-      doctor = await Doctor.findOne({ userId: req.user._id }).populate('userId', 'name email phone');
-    } catch (dbErr) {
-      console.error('❌ [DB ERROR] Doctor.findOne crash:', dbErr.message);
-      return res.status(500).json({ 
-        error: '💥 DATABASE LOOKUP CRASH 💥', 
-        details: dbErr.message 
-      });
-    }
-
-    console.log('🩺 Doctor lookup result for', req.user.name, ':', doctor ? 'Found ✅' : 'Not Found ❌');
-    
-    if (!doctor) {
-      return res.status(404).json({ 
-        error: 'Doctor profile not found.',
-        message: 'Your user profile is set to "doctor" but your professional details are missing. Please go to Settings to complete your profile.'
-      });
-    }
+    const doctor = await Doctor.findOne({ userId: req.user._id }).populate('userId', 'name email phone');
+    if (!doctor) return res.status(404).json({ error: 'Doctor profile not found.' });
 
     res.json({ doctor });
   } catch (err) {
-    console.error('💥 UNEXPECTED CRASH in /doctors/me:', err);
-    res.status(500).json({ 
-      error: '💥 UNEXPECTED ERROR 💥', 
-      details: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
+    console.error('Error in /doctors/me:', err);
+    res.status(500).json({ error: 'Server error.' });
   }
 });
+
+// @route  GET /api/doctors/:id
+// @desc   Get doctor by ID
+// @access Public
+router.get('/:id', async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id).populate('userId', 'name email');
+    if (!doctor) return res.status(404).json({ error: 'Doctor not found.' });
+    res.json({ doctor });
+  } catch (err) {
+    console.error('💥 CRASH in GET /doctors/:id:', err);
+    res.status(500).json({ error: '💥 CRASH IN DOCTOR BY ID 💥', details: err.message });
+  }
+});
+
 
 // @route  POST /api/doctors/me
 // @desc   Create or update current doctor profile

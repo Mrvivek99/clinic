@@ -236,6 +236,21 @@ router.put('/:id/update-status', auth, async (req, res) => {
       await Doctor.findByIdAndUpdate(appointment.doctorId, {
         currentTokenServing: appointment.tokenNumber,
       });
+
+      // NOTIFY THE NEXT PERSON IN QUEUE
+      const { sendNextPatientNotification } = require('../utils/notifications');
+      const nextAppointment = await Appointment.findOne({
+        doctorId: appointment.doctorId,
+        date: appointment.date,
+        status: 'booked',
+        tokenNumber: { $gt: appointment.tokenNumber }
+      })
+      .sort({ tokenNumber: 1 })
+      .populate('userId');
+
+      if (nextAppointment && nextAppointment.userId) {
+        await sendNextPatientNotification(nextAppointment.userId);
+      }
     }
 
     io.to(`queue-${appointment.date}`).emit('queue-updated', {
