@@ -45,6 +45,20 @@ router.post(
       await user.save();
       console.log(`✅ User registered: ${email}`);
 
+      // AUTO-CREATE DOCTOR PROFILE if role is doctor
+      if (user.role === 'doctor') {
+        const Doctor = require('../models/Doctor');
+        const newDoctor = new Doctor({
+          userId: user._id,
+          specialization: 'General Physician',
+          consultationFee: 500,
+          isAvailable: true,
+          workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          workingHours: { start: '09:00', end: '17:00' }
+        });
+        await newDoctor.save();
+      }
+
       if (!process.env.JWT_SECRET) {
         console.error('❌ CRITICAL ERROR: JWT_SECRET is not defined in environment variables!');
         return res.status(500).json({ error: 'Server configuration error (JWT).' });
