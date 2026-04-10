@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
+const { sendPushNotification } = require('../utils/notifications');
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -102,6 +103,15 @@ router.post(
       await user.save({ validateBeforeSave: false });
 
       const token = generateToken(user._id);
+
+      // Send login push notification if user has a saved FCM token
+      if (user.fcmToken) {
+        sendPushNotification(user.fcmToken, {
+          title: '🔐 Login Successful',
+          body: `Welcome back, ${user.name}! You are now logged in.`,
+          data: { type: 'login_success' },
+        }).catch(err => console.error('Login notification error:', err.message));
+      }
 
       res.json({
         message: 'Login successful',

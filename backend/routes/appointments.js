@@ -4,8 +4,10 @@ const { body, validationResult } = require('express-validator');
 const Appointment = require('../models/Appointment');
 const Slot = require('../models/Slot');
 const Doctor = require('../models/Doctor');
+const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 const { generateQRCode } = require('../utils/qrCode');
+const { sendBookingConfirmation } = require('../utils/notifications');
 
 // @route  POST /api/appointments/book-slot
 // @desc   Book an appointment slot
@@ -103,6 +105,12 @@ router.post(
         { path: 'userId', select: 'name email phone' },
         { path: 'doctorId', populate: { path: 'userId', select: 'name' } },
       ]);
+
+      // Send push notification & SMS confirmation (async, don't block response)
+      const fullUser = await User.findById(req.user._id);
+      sendBookingConfirmation(fullUser, appointment).catch(err => {
+        console.error('Notification error (non-blocking):', err.message);
+      });
 
       res.status(201).json({
         message: 'Appointment booked successfully!',
