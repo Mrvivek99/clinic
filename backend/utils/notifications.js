@@ -212,6 +212,8 @@ module.exports = {
   sendBookingConfirmation,
   sendLoginNotification,
   sendWelcomeNotification,
+  twilioClient,
+  firebaseAdmin,
 };
 
 

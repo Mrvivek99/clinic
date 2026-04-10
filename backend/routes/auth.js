@@ -141,7 +141,7 @@ router.put('/update-fcm-token', auth, async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, { $addToSet: { fcmTokens: fcmToken } });
     res.json({ message: 'FCM token registered.' });
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: '💥 CRASH IN UPDATE FCM 💥', details: err.message });
   }
 });
 
@@ -158,7 +158,7 @@ router.put('/profile', auth, async (req, res) => {
     );
     res.json({ message: 'Profile updated.', user });
   } catch (err) {
-    res.status(500).json({ error: 'Server error.' });
+    res.status(500).json({ error: '💥 CRASH IN AUTH ME 💥', details: err.message });
   }
 });
 

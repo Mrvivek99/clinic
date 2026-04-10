@@ -1,3 +1,4 @@
+require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
@@ -5,7 +6,6 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -96,9 +96,9 @@ io.on('connection', (socket) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('💥 GLOBAL ERROR:', err.stack);
   res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
+    error: err.message || '💥 GLOBAL SERVER ERROR 💥',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 });
