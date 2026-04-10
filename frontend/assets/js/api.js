@@ -1,14 +1,21 @@
 // API Configuration
+// ⚠️ IMPORTANT: Set your deployed Render backend URL here
+const PRODUCTION_BACKEND_URL = 'https://clinic-1-kl52.onrender.com';
+
 const API_BASE = window.API_BASE || (() => {
   const origin = window.location.origin;
-  // If we're on a common dev port (like Live Server 5500) but backend is on 5000
+
+  // Local development: route to localhost:5000
   if (origin.includes('localhost:') || origin.includes('127.0.0.1:')) {
     const currentPort = window.location.port;
     if (currentPort && currentPort !== '5000') {
       return `http://localhost:5000/api`;
     }
+    return `${origin}/api`;
   }
-  return `${origin}/api`;
+
+  // Production (Vercel or any hosted frontend): use the Render backend
+  return `${PRODUCTION_BACKEND_URL}/api`;
 })();
 
 // Token management
