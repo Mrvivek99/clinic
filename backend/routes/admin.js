@@ -91,10 +91,15 @@ router.get('/appointments', async (req, res) => {
     if (date) filter.date = date;
     if (status) filter.status = status;
 
-    // Doctors can only see their appointments
+    // Doctors can only see their own appointments
     if (req.user.role === 'doctor') {
       const doctor = await Doctor.findOne({ userId: req.user._id });
-      if (doctor) filter.doctorId = doctor._id;
+      if (doctor) {
+        filter.doctorId = doctor._id;
+      } else {
+        // If doctor profile not found, return empty results immediately
+        return res.json({ appointments: [], total: 0, page: parseInt(page) });
+      }
     } else if (doctorId) {
       filter.doctorId = doctorId;
     }
