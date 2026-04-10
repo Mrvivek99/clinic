@@ -195,7 +195,15 @@
   <div id="toast-container"></div>
   <script src="assets/js/api.js"></script>
   <script>
-    redirectIfLoggedIn('/dashboard.html');
+    // Role-aware redirect if already logged in
+    (function() {
+      const u = Auth.getUser();
+      if (u && Auth.isLoggedIn()) {
+        if (u.role === 'admin') window.location.href = '/admin.html';
+        else if (u.role === 'doctor') window.location.href = '/doctor-dashboard.html';
+        else window.location.href = '/dashboard.html';
+      }
+    })();
 
     function switchTab(tab) {
       document.querySelectorAll('.auth-tab').forEach((t, i) => {

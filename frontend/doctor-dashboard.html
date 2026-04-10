@@ -129,12 +129,40 @@
     </div>
   </div>
 
+  <!-- Doctor Notes Modal -->
+  <div class="modal-overlay" id="notes-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">📝 Add Patient Notes</h3>
+        <button class="modal-close" onclick="closeNotesModal()">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Patient</label>
+        <div id="notes-patient-name" style="font-weight:600;font-size:1rem;color:var(--navy);padding:.5rem 0">—</div>
+      </div>
+      <div class="form-group">
+        <label>Clinical Notes</label>
+        <textarea id="notes-input" rows="5" placeholder="Enter diagnosis, prescription, follow-up instructions…" style="resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:1rem">
+        <button class="btn btn-secondary btn-full" onclick="closeNotesModal()">Cancel</button>
+        <button class="btn btn-primary btn-full" onclick="saveNotes()">💾 Save Notes</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="assets/js/api.js"></script>
   <script>
     if (!requireAuth()) throw '';
     const user = Auth.getUser();
+    // Doctor/admin-only guard
+    if (user?.role !== 'doctor' && user?.role !== 'admin') {
+      showToast('Access denied. Doctors only.', 'error');
+      setTimeout(() => window.location.href = '/dashboard.html', 1500);
+      throw '';
+    }
     document.getElementById('user-name').textContent = user?.name || 'Doctor';
     document.getElementById('user-avatar').textContent = (user?.name || 'D')[0].toUpperCase();
 
@@ -229,7 +257,7 @@
                 <button class="btn btn-primary" onclick="updateStatus('${a._id}','completed')">✅ Done</button>
                 <button class="btn btn-secondary" onclick="updateStatus('${a._id}','missed')">⏭ Absent</button>
               ` : ''}
-              ${['booked','in-progress'].includes(a.status) ? `<button class="btn btn-ghost btn-sm" onclick="addNotes('${a._id}')">📝</button>` : ''}
+              ${['booked','in-progress'].includes(a.status) ? `<button class="btn btn-ghost btn-sm" onclick="addNotes('${a._id}','${(a.userId?.name||'').replace(/'/g,'\\\'')}')" title="Add Notes">📝</button>` : ''}
             </div>
           </div>
         `).join('');
@@ -273,6 +301,24 @@
 
     function openEmergencyModal()  { document.getElementById('emergency-modal').classList.add('open'); }
     function closeEmergencyModal() { document.getElementById('emergency-modal').classList.remove('open'); }
+
+    let notesApptId = null;
+    function addNotes(apptId, patientName) {
+      notesApptId = apptId;
+      document.getElementById('notes-patient-name').textContent = patientName || 'Patient';
+      document.getElementById('notes-input').value = '';
+      document.getElementById('notes-modal').classList.add('open');
+    }
+    function closeNotesModal() {
+      document.getElementById('notes-modal').classList.remove('open');
+      notesApptId = null;
+    }
+    async function saveNotes() {
+      const notes = document.getElementById('notes-input').value.trim();
+      if (!notes) { showToast('Please enter notes before saving.', 'warning'); return; }
+      await updateStatus(notesApptId, 'in-progress', notes);
+      closeNotesModal();
+    }
 
     async function addEmergency() {
       const patientId = document.getElementById('em-patient-id').value;

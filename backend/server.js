@@ -5,7 +5,7 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -44,7 +44,17 @@ const limiter = rateLimit({
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:5000', 'http://localhost:5500', 'http://127.0.0.1:5500'];
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());

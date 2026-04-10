@@ -227,6 +227,12 @@
   <script>
     if (!requireAuth()) throw '';
     const user = Auth.getUser();
+    // Admin-only guard
+    if (user?.role !== 'admin') {
+      showToast('Access denied. Admins only.', 'error');
+      setTimeout(() => window.location.href = user?.role === 'doctor' ? '/doctor-dashboard.html' : '/dashboard.html', 1500);
+      throw '';
+    }
     document.getElementById('user-name').textContent = user?.name || 'Admin';
     document.getElementById('user-avatar').textContent = (user?.name || 'A')[0].toUpperCase();
 

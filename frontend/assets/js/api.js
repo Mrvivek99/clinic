@@ -1,5 +1,15 @@
 // API Configuration
-const API_BASE = window.API_BASE || `${window.location.origin}/api`;
+const API_BASE = window.API_BASE || (() => {
+  const origin = window.location.origin;
+  // If we're on a common dev port (like Live Server 5500) but backend is on 5000
+  if (origin.includes('localhost:') || origin.includes('127.0.0.1:')) {
+    const currentPort = window.location.port;
+    if (currentPort && currentPort !== '5000') {
+      return `http://localhost:5000/api`;
+    }
+  }
+  return `${origin}/api`;
+})();
 
 // Token management
 const Auth = {
@@ -16,7 +26,9 @@ const Auth = {
   logout: () => {
     localStorage.removeItem('clinic_token');
     localStorage.removeItem('clinic_user');
-    window.location.href = '/index.html';
+    if (window.location.pathname !== '/index.html' && window.location.pathname !== '/') {
+      window.location.href = '/index.html';
+    }
   },
 };
 
@@ -24,23 +36,40 @@ const Auth = {
 const API = {
   async request(method, endpoint, body = null, auth = true) {
     const headers = { 'Content-Type': 'application/json' };
-    if (auth && Auth.getToken()) {
-      headers['Authorization'] = `Bearer ${Auth.getToken()}`;
+    const token = Auth.getToken();
+    if (auth && token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const config = { method, headers };
     if (body) config.body = JSON.stringify(body);
 
-    const res = await fetch(`${API_BASE}${endpoint}`, config);
-    const data = await res.json();
+    try {
+      const res = await fetch(`${API_BASE}${endpoint}`, config);
+      
+      // Try to parse JSON, if it fails, handle as text
+      let data;
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = { error: text || 'Unknown server response' };
+      }
 
-    if (res.status === 401) {
-      Auth.logout();
-      return;
+      if (res.status === 401) {
+        // Only logout if we're not trying to login/register or if we were already logged in
+        if (endpoint !== '/auth/login' && endpoint !== '/auth/register') {
+          Auth.logout();
+        }
+        throw { status: 401, ...data };
+      }
+
+      if (!res.ok) throw { status: res.status, ...data };
+      return data;
+    } catch (err) {
+      console.error(`API Error (${endpoint}):`, err);
+      throw err;
     }
-
-    if (!res.ok) throw { status: res.status, ...data };
-    return data;
   },
 
   get: (endpoint, auth = true) => API.request('GET', endpoint, null, auth),

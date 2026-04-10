@@ -165,6 +165,12 @@
   <script>
     if (!requireAuth()) throw '';
     const user = Auth.getUser();
+    // Doctor/admin-only guard
+    if (user?.role !== 'doctor' && user?.role !== 'admin') {
+      showToast('Access denied. Doctors only.', 'error');
+      setTimeout(() => window.location.href = '/dashboard.html', 1500);
+      throw '';
+    }
     document.getElementById('user-name').textContent = user?.name || 'Doctor';
     document.getElementById('doc-p-name').textContent = 'Dr. ' + (user?.name || 'Doctor');
     document.getElementById('user-avatar').textContent = (user?.name || 'D')[0].toUpperCase();
