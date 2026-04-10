@@ -173,17 +173,18 @@
 
     async function initDoctor() {
       try {
-        const data = await API.get('/doctors');
-        // Find this user's doctor profile
-        const doc = (data.doctors || []).find(d => d.userId?._id === user._id || d.userId === user._id);
-        if (doc) {
+        // More reliable way to get the current doctor's profile
+        const data = await API.get('/doctors/me');
+        if (data && data.doctor) {
+          const doc = data.doctor;
           doctorId = doc._id;
           document.getElementById('doc-subtitle').textContent = `Dr. ${user.name} · ${doc.specialization}`;
           loadQueue();
         } else if (user.role === 'admin') {
-          // Admin can view any doctor's queue
-          doctorId = data.doctors?.[0]?._id;
-          loadQueue();
+          // Admin backup: fallback to first doctor if no profile found
+          const allDocs = await API.get('/doctors');
+          doctorId = allDocs.doctors?.[0]?._id;
+          if (doctorId) loadQueue();
         } else {
           document.getElementById('queue-list').innerHTML = `
             <div class="empty-state">
@@ -194,6 +195,7 @@
             </div>`;
         }
       } catch (e) {
+        console.error('Init error:', e);
         showToast('Error initializing dashboard.', 'error');
       }
     }
@@ -339,8 +341,27 @@
     // Connect Socket.io
     try {
       const socket = io(window.SOCKET_URL || window.location.origin);
-      socket.on('queue-updated', () => loadQueue());
-    } catch (e) {}
+      
+      // When date changes, join the room for that specific date
+      function joinQueueRoom() {
+        const date = document.getElementById('date-sel').value;
+        if (doctorId && date) {
+          socket.emit('join-queue', { doctorId, date });
+          console.log(`📡 Joined queue room: queue-${date}`);
+        }
+      }
+
+      socket.on('connect', joinQueueRoom);
+      socket.on('queue-updated', (data) => {
+        console.log('🔄 Queue updated real-time:', data);
+        loadQueue();
+      });
+
+      // Also rejoin if selection changes
+      document.getElementById('date-sel').addEventListener('change', joinQueueRoom);
+    } catch (e) {
+      console.warn('Socket connection failed:', e);
+    }
 
     // Auto-refresh every 15s
     setInterval(loadQueue, 15000);

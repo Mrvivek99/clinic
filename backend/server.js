@@ -78,13 +78,15 @@ app.use('/api/slots', slotRoutes);
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
-  socket.on('join-queue-room', (date) => {
+  // Join a specific date room
+  socket.on('join-queue', ({ doctorId, date }) => {
     socket.join(`queue-${date}`);
-    console.log(`Socket ${socket.id} joined queue room for ${date}`);
+    if (doctorId) socket.join(`doctor-${doctorId}`);
+    console.log(`Socket ${socket.id} joined rooms: queue-${date}, doctor-${doctorId}`);
   });
 
-  socket.on('join-doctor-room', (doctorId) => {
-    socket.join(`doctor-${doctorId}`);
+  socket.on('join-queue-room', (date) => {
+    socket.join(`queue-${date}`);
   });
 
   socket.on('disconnect', () => {
