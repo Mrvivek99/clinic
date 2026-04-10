@@ -133,8 +133,44 @@ async function sendBookingConfirmation(user, appointment) {
   }
 }
 
+/**
+ * Send login alert (Push + SMS)
+ */
+async function sendLoginNotification(user) {
+  const title = '🔐 Login Successful';
+  const body = `Welcome back, ${user.name}! You are now logged in.`;
+
+  // 1. Push Notification
+  if (user.fcmToken) {
+    await sendPushNotification(user.fcmToken, { 
+      title, 
+      body, 
+      data: { type: 'login_success' } 
+    }).catch(err => console.error('Login push error:', err.message));
+  }
+
+  // 2. SMS Notification
+  if (user.phone && twilioClient) {
+    const message = `🔐 Login Alert: Hi ${user.name}, you just logged into Smart Clinic. If this wasn't you, please secure your account.`;
+    try {
+      await twilioClient.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: user.phone,
+      });
+      console.log(`Login SMS sent to ${user.phone}`);
+    } catch (err) {
+      console.error('Login SMS error:', err.message);
+    }
+  } else if (user.phone) {
+    console.log(`[SMS Mock] Login Alert to ${user.phone}`);
+  }
+}
+
 module.exports = {
   sendSMSReminder,
   sendPushNotification,
   sendBookingConfirmation,
+  sendLoginNotification,
 };
+
