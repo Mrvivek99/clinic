@@ -102,14 +102,27 @@ router.put('/:id', auth, requireRole('admin', 'doctor'), async (req, res) => {
 // @desc   Get current logged in doctor profile
 // @access Private (doctor)
 router.get('/me', auth, requireRole('doctor'), async (req, res) => {
-  console.log('🔍 /doctors/me hit by user:', req.user._id);
+  console.log(`🔍 [DEBUG] /doctors/me requested by: ${req.user.email} (ID: ${req.user._id})`);
+  
   try {
-    // Robust lookup: ensure req.user exists and has an ID
+    // 1. Validate User context
     if (!req.user || !req.user._id) {
-      return res.status(401).json({ error: 'User context missing.' });
+       console.error('❌ [ERROR] Request reached route but req.user is empty.');
+       return res.status(500).json({ error: 'Auth context failure.' });
     }
 
-    const doctor = await Doctor.findOne({ userId: req.user._id }).populate('userId', 'name email phone');
+    // 2. Attempt Doctor lookup with explicit error catch
+    let doctor;
+    try {
+      doctor = await Doctor.findOne({ userId: req.user._id }).populate('userId', 'name email phone');
+    } catch (dbErr) {
+      console.error('❌ [DB ERROR] Doctor.findOne crash:', dbErr.message);
+      return res.status(500).json({ 
+        error: '💥 DATABASE LOOKUP CRASH 💥', 
+        details: dbErr.message 
+      });
+    }
+
     console.log('🩺 Doctor lookup result for', req.user.name, ':', doctor ? 'Found ✅' : 'Not Found ❌');
     
     if (!doctor) {
@@ -121,9 +134,9 @@ router.get('/me', auth, requireRole('doctor'), async (req, res) => {
 
     res.json({ doctor });
   } catch (err) {
-    console.error('💥 CRASH in /doctors/me:', err);
+    console.error('💥 UNEXPECTED CRASH in /doctors/me:', err);
     res.status(500).json({ 
-      error: '💥 CRASH IN DOCTOR ME 💥', 
+      error: '💥 UNEXPECTED ERROR 💥', 
       details: err.message,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
