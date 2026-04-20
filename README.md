@@ -6,9 +6,9 @@ A **full-stack, production-ready web application** designed to streamline clinic
 
 ## 👨‍💻 Team Members
 
+* **Diwanshu**
 * **Piyush Nayak**
 * **Vivek Kumar**
-* **Diwanshu**
 
 
 ---
