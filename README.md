@@ -6,9 +6,9 @@ A **full-stack, production-ready web application** designed to streamline clinic
 
 ## 👨‍💻 Team Members
 
+* **Piyush Nayak**
 * **Vivek Kumar**
 * **Diwanshu**
-* **Piyush Nayak**
 
 
 ---
@@ -128,8 +128,8 @@ Frontend runs at:
 
 ## 🚀 Deployment
 
-* Backend → Render / Railway
-* Frontend → Netlify / Vercel
+* Backend → Render 
+* Frontend → Vercel
 * Database → MongoDB Atlas
 
 ---
