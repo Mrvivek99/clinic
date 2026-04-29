@@ -297,11 +297,6 @@
       }
     }
 
-    function addNotes(apptId) {
-      const notes = prompt('Add notes for this patient:');
-      if (notes) updateStatus(apptId, 'in-progress', notes);
-    }
-
     function openEmergencyModal()  { document.getElementById('emergency-modal').classList.add('open'); }
     function closeEmergencyModal() { document.getElementById('emergency-modal').classList.remove('open'); }
 

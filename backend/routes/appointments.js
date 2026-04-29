@@ -10,8 +10,20 @@ const { generateQRCode } = require('../utils/qrCode');
 const { sendBookingConfirmation } = require('../utils/notifications');
 
 // @route  POST /api/appointments/book-slot
-// @desc   Book an appointment slot
+// @desc   Book an appointment slot and assign a queue token number
 // @access Private (patients)
+//
+// Token assignment flow (how a patient gets their queue token):
+//  1. Verify the chosen slot is still free using an atomic findOneAndUpdate
+//     (sets isBooked: true). This prevents two patients booking the same slot.
+//  2. Query the Appointments collection for the highest tokenNumber for this
+//     doctor on this date, then set tokenNumber = max + 1.
+//     This gives each patient a sequential number (1, 2, 3…) for the day's queue.
+//  3. Calculate estimatedWaitMinutes = (pending appointments) × slotDuration.
+//  4. Save the new Appointment document to MongoDB.
+//  5. Emit a Socket.io "queue-updated" event so the doctor's dashboard and
+//     the public queue board refresh in real time – no page reload needed.
+//  6. Respond with { appointment } including the assigned tokenNumber.
 router.post(
   '/book-slot',
   auth,
@@ -210,8 +222,39 @@ router.put('/:id/cancel', auth, async (req, res) => {
 });
 
 // @route  PUT /api/appointments/update-status
-// @desc   Update appointment status (doctor/admin)
+// @desc   Doctor/admin updates an appointment status
 // @access Private (doctor/admin)
+//
+// This single endpoint drives the entire doctor-dashboard queue flow:
+//
+//  ┌──────────┐    ▶ Start     ┌─────────────┐    ✅ Done     ┌───────────┐
+//  │  booked  │ ─────────────▶ │ in-progress │ ────────────▶ │ completed │
+//  └──────────┘                └─────────────┘               └───────────┘
+//                                     │
+//                                     │  ⏭ Absent (Mark Absent button)
+//                                     ▼
+//                               ┌────────┐
+//                               │ missed │
+//                               └────────┘
+//
+//  When status → "in-progress":
+//    • Sets checkedInAt timestamp on the Appointment document.
+//    • Updates Doctor.currentTokenServing in MongoDB so the queue board
+//      shows the live "Now Serving" token number.
+//    • Sends a push notification to the NEXT patient in the queue
+//      (the one with the lowest tokenNumber still in 'booked' state)
+//      so they know to prepare.
+//    • Emits a Socket.io "queue-updated" event to all connected clients.
+//
+//  When status → "completed":
+//    • Sets completedAt timestamp on the Appointment document.
+//    • Emits Socket.io event.
+//
+//  When status → "missed" (Mark Absent):
+//    • The doctor presses "⏭ Mark Absent" – the patient did not show up.
+//    • Appointment.status is set to "missed" in MongoDB.
+//    • The slot is effectively lost for the day (not freed for rebooking).
+//    • Emits Socket.io event so the queue board updates in real time.
 router.put('/:id/update-status', auth, async (req, res) => {
   const { status, notes } = req.body;
   const io = req.app.get('io');

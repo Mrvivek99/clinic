@@ -6,7 +6,21 @@ const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 const { sendLoginNotification, sendWelcomeNotification } = require('../utils/notifications');
 
-// Generate JWT token
+/**
+ * generateToken(userId)
+ * ─────────────────────
+ * Creates a signed JSON Web Token (JWT) that:
+ *  - Contains { userId } as the payload (the "claim")
+ *  - Is signed with JWT_SECRET (so nobody can forge or modify it)
+ *  - Expires after JWT_EXPIRES_IN (default 7 days)
+ *
+ * The token is an opaque string of three Base64-encoded parts:
+ *   header.payload.signature
+ * e.g. eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOi...
+ *
+ * The frontend stores this token in localStorage and sends it on every
+ * authenticated request as:  Authorization: Bearer <token>
+ */
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
@@ -14,8 +28,19 @@ const generateToken = (userId) => {
 };
 
 // @route  POST /api/auth/register
-// @desc   Register a new patient
+// @desc   Register a new patient (or doctor)
 // @access Public
+//
+// Full registration flow:
+//  1. Validate input fields (express-validator).
+//  2. Check MongoDB – if the email already exists, return 400.
+//  3. Create a new User document; the pre-save hook in User.js
+//     automatically bcrypt-hashes the password before it reaches the DB.
+//  4. If role === 'doctor', auto-create a Doctor profile document linked
+//     to the new User via userId (ObjectId reference).
+//  5. Call generateToken(user._id) → returns a signed JWT string.
+//  6. Return the token + user object to the frontend.
+//     The frontend stores the token in localStorage (Auth.setToken).
 router.post(
   '/register',
   [
@@ -82,8 +107,23 @@ router.post(
 );
 
 // @route  POST /api/auth/login
-// @desc   Login user
+// @desc   Authenticate user and return a JWT token
 // @access Public
+//
+// Full login flow:
+//  1. Validate email + password fields.
+//  2. Look up the User in MongoDB by email.
+//     Note: password is excluded by default (select: false in schema)
+//     so we explicitly add .select('+password') to fetch it here.
+//  3. Call user.comparePassword() which uses bcrypt.compare() to check
+//     the plain-text password against the stored hash.
+//  4. Check isActive flag (admin can deactivate accounts).
+//  5. Update lastLogin timestamp in MongoDB.
+//  6. Call generateToken(user._id) → signed JWT string.
+//  7. Respond with { token, user }.
+//     Frontend: Auth.setToken(data.token) saves it to localStorage.
+//              Auth.setUser(data.user) saves the user profile.
+//     All subsequent API calls send:  Authorization: Bearer <token>
 router.post(
   '/login',
   [
