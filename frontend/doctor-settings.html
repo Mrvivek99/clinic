@@ -172,8 +172,8 @@
       setTimeout(() => window.location.href = '/dashboard.html', 1500);
       throw '';
     }
-    document.getElementById('user-name').textContent = user?.name || 'Doctor';
-    document.getElementById('doc-p-name').textContent = 'Dr. ' + (user?.name || 'Doctor');
+    const docName = user?.name || 'Doctor';
+    document.getElementById('doc-p-name').textContent = docName.startsWith('Dr.') ? docName : 'Dr. ' + docName;
     document.getElementById('user-avatar').textContent = (user?.name || 'D')[0].toUpperCase();
     document.getElementById('doc-p-avatar').textContent = (user?.name || 'D')[0].toUpperCase();
 

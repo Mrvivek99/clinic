@@ -19,123 +19,107 @@ async function seed() {
     await mongoose.connect(MONGODB_URI);
     console.log('✅ Connected to MongoDB');
 
-    // ── Create Admin User ──
-    let admin = await User.findOne({ email: 'admin@clinic.com' });
-    if (!admin) {
-      admin = new User({
-        name: 'Admin User',
-        email: 'admin@clinic.com',
-        phone: '+91 9876543210',
-        password: 'admin123',
-        role: 'admin',
-      });
-      await admin.save();
-      console.log('✅ Admin created: admin@clinic.com / admin123');
-    } else {
-      console.log('ℹ️  Admin already exists: admin@clinic.com');
-    }
+    // ── Clean existing data ──
+    await User.deleteMany({});
+    await Doctor.deleteMany({});
+    
+    // ── Admin User ──
+    const admin = new User({
+      name: 'Admin User',
+      email: 'admin@clinic.com',
+      phone: '+91 9876543210',
+      password: 'admin123',
+      role: 'admin',
+    });
+    await admin.save();
+    console.log('✅ Admin recreated: admin@clinic.com / admin123');
 
-    // ── Create Doctor User ──
-    let doctorUser = await User.findOne({ email: 'doctor@clinic.com' });
-    if (!doctorUser) {
-      doctorUser = new User({
-        name: 'Dr. Sharma',
-        email: 'doctor@clinic.com',
-        phone: '+91 9876543211',
-        password: 'doctor123',
-        role: 'doctor',
-      });
-      await doctorUser.save();
-      console.log('✅ Doctor user created: doctor@clinic.com / doctor123');
-    } else {
-      console.log('ℹ️  Doctor user already exists: doctor@clinic.com');
-    }
+    // ── Doctor 1: Sharma ──
+    const email1 = 'doctor@clinic.com';
+    await User.deleteOne({ email: email1 });
+    const doc1User = new User({
+      name: 'Sharma',
+      email: email1,
+      phone: '+91 9876543211',
+      password: 'doctor123',
+      role: 'doctor',
+    });
+    await doc1User.save();
+    
+    await Doctor.deleteOne({ userId: doc1User._id });
+    const doc1Profile = new Doctor({
+      userId: doc1User._id,
+      specialization: 'General Medicine',
+      experience: 10,
+      consultationFee: 500,
+    });
+    await doc1Profile.save();
+    console.log(`✅ Doctor 1 recreated: ${email1} / doctor123`);
 
-    // ── Create Doctor Profile ──
-    let doctorProfile = await Doctor.findOne({ userId: doctorUser._id });
-    if (!doctorProfile) {
-      doctorProfile = new Doctor({
-        userId: doctorUser._id,
-        specialization: 'General Medicine',
-        qualification: 'MBBS, MD',
-        experience: 10,
-        consultationFee: 500,
-        slotDuration: 15,
-        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        workingHours: { start: '09:00', end: '17:00' },
-        breakTime: { start: '13:00', end: '14:00' },
-        maxPatientsPerDay: 30,
-        bio: 'Experienced general physician with 10 years of practice.',
-        isAvailable: true,
-      });
-      await doctorProfile.save();
-      console.log('✅ Doctor profile created: Dr. Sharma — General Medicine');
-    } else {
-      console.log('ℹ️  Doctor profile already exists for Dr. Sharma');
-    }
+    // ── Doctor 2: Manish Patel ──
+    const email2 = 'doctor2@clinic.com';
+    await User.deleteOne({ email: email2 });
+    const doc2User = new User({
+      name: 'Manish Patel',
+      email: email2,
+      phone: '+91 9876543212',
+      password: 'doctor123',
+      role: 'doctor',
+    });
+    await doc2User.save();
 
-    // ── Create Second Doctor ──
-    let doctor2User = await User.findOne({ email: 'doctor2@clinic.com' });
-    if (!doctor2User) {
-      doctor2User = new User({
-        name: 'Dr. Patel',
-        email: 'doctor2@clinic.com',
-        phone: '+91 9876543212',
-        password: 'doctor123',
-        role: 'doctor',
-      });
-      await doctor2User.save();
+    await Doctor.deleteOne({ userId: doc2User._id });
+    const doc2Profile = new Doctor({
+      userId: doc2User._id,
+      specialization: 'Pediatrics',
+      experience: 8,
+      consultationFee: 400,
+    });
+    await doc2Profile.save();
+    console.log(`✅ Doctor 2 recreated: ${email2} / doctor123`);
 
-      const doctor2Profile = new Doctor({
-        userId: doctor2User._id,
-        specialization: 'Pediatrics',
-        qualification: 'MBBS, DCH',
-        experience: 8,
-        consultationFee: 400,
-        slotDuration: 15,
-        workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        workingHours: { start: '10:00', end: '18:00' },
-        breakTime: { start: '13:00', end: '14:00' },
-        maxPatientsPerDay: 25,
-        bio: 'Child specialist with expertise in pediatric care.',
-        isAvailable: true,
-      });
-      await doctor2Profile.save();
-      console.log('✅ Doctor 2 created: Dr. Patel — Pediatrics (doctor2@clinic.com / doctor123)');
-    } else {
-      console.log('ℹ️  Doctor 2 already exists: doctor2@clinic.com');
-    }
+    // ── Doctor 3: M tries ──
+    const email3 = 'doctor3@clinic.com';
+    await User.deleteOne({ email: email3 });
+    const doc3User = new User({
+      name: 'M tries',
+      email: email3,
+      phone: '+91 9876543214',
+      password: 'doctor123',
+      role: 'doctor',
+    });
+    await doc3User.save();
 
-    // ── Create Demo Patient ──
-    let patient = await User.findOne({ email: 'patient@clinic.com' });
-    if (!patient) {
-      patient = new User({
-        name: 'Rahul Kumar',
-        email: 'patient@clinic.com',
-        phone: '+91 9876543213',
-        password: 'patient123',
-        role: 'patient',
-        dateOfBirth: '1995-06-15',
-        gender: 'male',
-        bloodGroup: 'O+',
-      });
-      await patient.save();
-      console.log('✅ Demo patient created: patient@clinic.com / patient123');
-    } else {
-      console.log('ℹ️  Demo patient already exists: patient@clinic.com');
-    }
+    await Doctor.deleteOne({ userId: doc3User._id });
+    const doc3Profile = new Doctor({
+      userId: doc3User._id,
+      specialization: 'General Physician',
+      experience: 0,
+      consultationFee: 500,
+    });
+    await doc3Profile.save();
+    console.log(`✅ Doctor 3 recreated: ${email3} / doctor123`);
 
-    console.log('\n🎉 Seeding complete! Demo credentials:');
-    console.log('   Admin:   admin@clinic.com   / admin123');
-    console.log('   Doctor:  doctor@clinic.com   / doctor123');
-    console.log('   Doctor2: doctor2@clinic.com  / doctor123');
-    console.log('   Patient: patient@clinic.com  / patient123');
+    // ── Demo Patient ──
+    const pEmail = 'patient@clinic.com';
+    await User.deleteOne({ email: pEmail });
+    const patient = new User({
+      name: 'Rahul Kumar',
+      email: pEmail,
+      phone: '+91 9876543213',
+      password: 'patient123',
+      role: 'patient',
+    });
+    await patient.save();
+    console.log(`✅ Patient recreated: ${pEmail} / patient123`);
+
+    console.log('\n🎉 ALL ACCOUNTS RECREATED SUCCESSFULLY!');
 
   } catch (err) {
     console.error('❌ Seed error:', err.message);
   } finally {
     await mongoose.disconnect();
-    console.log('\n📦 Disconnected from MongoDB');
+    console.log('\n📦 Disconnected');
     process.exit(0);
   }
 }

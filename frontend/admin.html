@@ -330,7 +330,7 @@
             <tr>
               <td><strong>#${a.tokenNumber}</strong>${a.isEmergency ? ' <span class="badge badge-danger">🚨</span>' : ''}</td>
               <td>${a.userId?.name || '—'}<br><small style="color:var(--text-3)">${a.userId?.phone || ''}</small></td>
-              <td>Dr. ${a.doctorId?.userId?.name || '—'}</td>
+              <td>${(a.doctorId?.userId?.name || 'Doctor').startsWith('Dr.') ? a.doctorId.userId.name : 'Dr. ' + (a.doctorId?.userId?.name || 'Doctor')}</td>
               <td>${formatDate(a.date)}</td>
               <td>${formatTime(a.slotTime)}</td>
               <td><span class="badge ${statusMap[a.status]}">${a.status}</span></td>
@@ -362,7 +362,7 @@
             <div class="doctor-manage-card">
               <div class="doctor-avatar" style="width:48px;height:48px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem">${(d.userId?.name||'D')[0]}</div>
               <div style="flex:1">
-                <strong>Dr. ${d.userId?.name || ''}</strong>
+                <strong>${(d.userId?.name || 'Doctor').startsWith('Dr.') ? d.userId.name : 'Dr. ' + (d.userId?.name || 'Doctor')}</strong>
                 <div style="font-size:.82rem;color:var(--text-3)">${d.specialization || ''} · ${d.experience}yr exp</div>
                 <div style="font-size:.78rem;color:var(--text-3)">${d.workingHours?.start}–${d.workingHours?.end} · ${d.slotDuration}min slots</div>
               </div>
@@ -379,7 +379,11 @@
       try {
         const data = await API.get('/doctors');
         const sel = document.getElementById('slot-doctor');
-        sel.innerHTML = (data.doctors || []).map(d => `<option value="${d._id}">Dr. ${d.userId?.name} — ${d.specialization}</option>`).join('');
+        sel.innerHTML = (data.doctors || []).map(d => {
+          const name = (d.userId?.name || 'Doctor');
+          const formatted = name.startsWith('Dr.') ? name : 'Dr. ' + name;
+          return `<option value="${d._id}">${formatted} — ${d.specialization}</option>`;
+        }).join('');
         document.getElementById('slot-date').value = new Date().toISOString().split('T')[0];
       } catch (err) {}
     }

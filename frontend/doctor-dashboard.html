@@ -207,6 +207,7 @@
         const data = await API.get(`/admin/appointments?doctorId=${doctorId}&date=${date}&limit=50`);
         const appts = data.appointments || [];
 
+
         const waiting  = appts.filter(a => a.status === 'booked');
         const active   = appts.filter(a => a.status === 'in-progress');
         const done     = appts.filter(a => a.status === 'completed');
@@ -340,7 +341,9 @@
 
     // Connect Socket.io
     try {
-      const socket = io(window.SOCKET_URL || window.location.origin);
+      // Use the API_BASE URL for the socket connection (stripping the /api suffix)
+      const socketUrl = API_BASE.replace(/\/api$/, '');
+      const socket = io(socketUrl);
       
       // When date changes, join the room for that specific date
       function joinQueueRoom() {

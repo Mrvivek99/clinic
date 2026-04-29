@@ -269,7 +269,7 @@
           <div class="doctor-card" id="dc-${d._id}" onclick="selectDoctor('${d._id}')">
             <div class="doctor-avatar">${(d.userId?.name || 'D')[0]}</div>
             <div class="doctor-info">
-              <strong>Dr. ${d.userId?.name || 'Doctor'}</strong>
+              <strong>${d.userId?.name?.startsWith('Dr.') ? d.userId.name : 'Dr. ' + (d.userId?.name || 'Doctor')}</strong>
               <span>${d.specialization || ''} · ${d.experience || 0}yr exp</span>
             </div>
             ${d.consultationFee ? `<span class="fee-tag">₹${d.consultationFee}</span>` : ''}
@@ -286,7 +286,8 @@
       document.querySelectorAll('.doctor-card').forEach(c => c.classList.remove('selected'));
       document.getElementById(`dc-${id}`).classList.add('selected');
 
-      document.getElementById('sum-doctor').textContent = 'Dr. ' + (selectedDoctor.userId?.name || '');
+      const docName = selectedDoctor.userId?.name || 'Doctor';
+      document.getElementById('sum-doctor').textContent = docName.startsWith('Dr.') ? docName : 'Dr. ' + docName;
       document.getElementById('sum-spec').textContent = selectedDoctor.specialization || '';
       document.getElementById('sum-fee').textContent = selectedDoctor.consultationFee ? `₹${selectedDoctor.consultationFee}` : 'Free';
 
@@ -357,9 +358,11 @@
 
     // STEP 4: Confirm summary
     function buildConfirmSummary() {
+      const docName = selectedDoctor.userId?.name || 'Doctor';
+      const formattedName = docName.startsWith('Dr.') ? docName : 'Dr. ' + docName;
       document.getElementById('confirm-summary').innerHTML = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;font-size:.9rem">
-          <div><span style="color:var(--text-3)">Doctor</span><br><strong>Dr. ${selectedDoctor.userId?.name || ''}</strong></div>
+          <div><span style="color:var(--text-3)">Doctor</span><br><strong>${formattedName}</strong></div>
           <div><span style="color:var(--text-3)">Specialization</span><br><strong>${selectedDoctor.specialization || ''}</strong></div>
           <div><span style="color:var(--text-3)">Date</span><br><strong>${formatDate(selectedDate)}</strong></div>
           <div><span style="color:var(--text-3)">Time</span><br><strong>${formatTime(selectedSlot.startTime)}</strong></div>
@@ -380,8 +383,10 @@
         });
         const appt = data.appointment;
         document.getElementById('success-token').textContent = '#' + appt.tokenNumber;
+        const docName = selectedDoctor.userId?.name || 'Doctor';
+        const formattedName = docName.startsWith('Dr.') ? docName : 'Dr. ' + docName;
         document.getElementById('success-info').textContent =
-          `${formatDate(appt.date)} at ${formatTime(appt.slotTime)} with Dr. ${selectedDoctor.userId?.name}`;
+          `${formatDate(appt.date)} at ${formatTime(appt.slotTime)} with ${formattedName}`;
         document.getElementById('sum-token').textContent = '#' + appt.tokenNumber;
         goStep(5);
         showToast('Appointment booked successfully!', 'success');
